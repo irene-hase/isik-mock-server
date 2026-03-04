@@ -2,6 +2,13 @@
 
 # Release Notes ISiK Mock Server
 
+## Release 3.4.4 (2026-03)
+
+### changed
+
+- Upgraded HAPI FHIR to 8.8.0
+- Updated README with the deprecation notice for ISiK 3 support
+
 ## Release 3.4.3 (2026-02)
 
 ### added
