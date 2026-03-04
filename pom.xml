@@ -15,11 +15,11 @@
     <parent>
         <groupId>ca.uhn.hapi.fhir</groupId>
         <artifactId>hapi-fhir</artifactId>
-        <version>8.6.5</version>
+        <version>8.8.0</version>
     </parent>
 
     <artifactId>isik-mock-server</artifactId>
-    <version>3.4.3-b48</version>
+    <version>3.4.4-b52</version>
     <packaging>war</packaging>
 
     <properties>
@@ -27,7 +27,7 @@
         <java.version>21</java.version>
         <asm.version>9.9.1</asm.version>
         <hapi.fhir.jpa.server.starter.revision>1</hapi.fhir.jpa.server.starter.revision>
-        <clinical-reasoning.version>4.2.0</clinical-reasoning.version>
+        <clinical-reasoning.version>4.4.0</clinical-reasoning.version>
 
         <!-- Plugins Versions -->
         <maven.failsafe.version>3.5.4</maven.failsafe.version>
