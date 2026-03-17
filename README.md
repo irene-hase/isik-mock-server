@@ -38,7 +38,7 @@ is based on the [HAPI FHIR Starter Project](https://github.com/hapifhir/hapi-fhi
 
 > [!WARNING]
 > ISiK Level 3 support in this Mock Server Implementation has reached the End-of-Life and will be removed with the next major release.
-> If you want to test further against this Mock Server for ISiK Level 3, please use the latest 3.4.4 Version.
+> If you want to test further against this Mock Server for ISiK Level 3, please use the latest 3.4.5 Version.
 
 ### Release Notes
 

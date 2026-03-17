@@ -127,5 +127,8 @@
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKStandort",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKStandortRaum",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKStandortBettenstellplatz"
+  ],
+  "RiskAssessment": [
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKAMTSBewertung"
   ]
 }

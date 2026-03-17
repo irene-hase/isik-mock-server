@@ -80,6 +80,7 @@
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikationsVerordnung",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikationTransaction",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikationTransactionResponse",
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKAMTSBewertung",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKKalender",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedizinischeBehandlungseinheit",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKTermin",
