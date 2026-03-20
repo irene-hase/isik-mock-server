@@ -1,0 +1,87 @@
+{
+  "resourceType": "Bundle",
+  "meta": {
+    "profile": [
+      "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikationTransaction"
+    ]
+  },
+  "type": "transaction",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:a1b2c3d4-e5f6-4890-abcd-ef1234567890",
+      "resource": {
+        "resourceType": "Medication",
+        "meta": {
+          "profile": [
+            "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikament"
+          ]
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://fhir.de/CodeSystem/bfarm/atc",
+              "code": "V03AB23",
+              "display": "Acetylcystein",
+              "version": "2024"
+            }
+          ]
+        },
+        "status": "active"
+      },
+      "request": {
+        "method": "POST",
+        "url": "Medication"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:b2c3d4e5-f6a7-4901-bcde-f12345678901",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "meta": {
+          "profile": [
+            "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikationsVerordnung"
+          ]
+        },
+        "status": "active",
+        "intent": "order",
+        "medicationReference": {
+          "reference": "urn:uuid:a1b2c3d4-e5f6-4890-abcd-ef1234567890"
+        },
+        "subject": {
+          "reference": "Patient/Mustermann"
+        },
+        "authoredOn": "2025-07-01",
+        "requester": {
+          "reference": "Practitioner/DrFleming"
+        },
+        "dosageInstruction": [
+          {
+            "text": "1 Tablette morgens",
+            "timing": {
+              "repeat": {
+                "frequency": 1,
+                "period": 1,
+                "periodUnit": "d"
+              }
+            },
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "Tablet",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "1"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "MedicationRequest"
+      }
+    }
+  ]
+}
+

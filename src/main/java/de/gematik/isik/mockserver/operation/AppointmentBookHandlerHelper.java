@@ -26,6 +26,7 @@ package de.gematik.isik.mockserver.operation;
  */
 
 import ca.uhn.fhir.jpa.api.dao.DaoRegistry;
+import ca.uhn.fhir.jpa.api.model.DaoMethodOutcome;
 import ca.uhn.fhir.jpa.searchparam.SearchParameterMap;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
@@ -43,6 +44,7 @@ import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.RelatedPerson;
 import org.hl7.fhir.r4.model.Schedule;
 import org.hl7.fhir.r4.model.Slot;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +54,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
@@ -94,9 +97,9 @@ public class AppointmentBookHandlerHelper {
 	}
 
 	public void validateServiceType(Appointment incomingAppointment, OperationOutcome outcome) {
-		boolean isValid = incomingAppointment.getServiceType().stream().anyMatch(code -> code.getCodingFirstRep()
-				.getSystem()
-				.equals("http://terminology.hl7.org/CodeSystem/service-type"));
+		boolean isValid = incomingAppointment.getServiceType().stream()
+				.anyMatch(code -> "http://terminology.hl7.org/CodeSystem/service-type"
+						.equals(code.getCodingFirstRep().getSystem()));
 
 		if (!isValid) {
 			log.info(
@@ -118,13 +121,31 @@ public class AppointmentBookHandlerHelper {
 	}
 
 	public void validateStartInFuture(Appointment incomingAppointment, OperationOutcome outcome) {
+		if (incomingAppointment.getStart() == null) {
+			return; // Not applicable when start is not set (e.g., status=proposed per ISiK IG)
+		}
 		if (incomingAppointment.getStart().before(new Date())) {
 			log.info("Incoming Appointment: Start date is not in the future.");
 			OperationOutcomeUtils.addIssue(outcome, "Appointment.start", "Start date must be in the future.");
 		}
 	}
 
+	/**
+	 * Statuses for which start and end are not required per ISiK IG: "Das Feld ist in den meisten
+	 * Fällen verpflichtend, nur für die Status 'proposed', 'cancelled', 'waitlist' existiert kein
+	 * Wert."
+	 */
+	private static final Set<String> STATUSES_WITHOUT_REQUIRED_START_END = Set.of("proposed", "cancelled", "waitlist");
+
 	public void validateStartAndEndPresent(Appointment incomingAppointment, OperationOutcome outcome) {
+		if (incomingAppointment.getStatus() != null
+				&& STATUSES_WITHOUT_REQUIRED_START_END.contains(
+						incomingAppointment.getStatus().toCode())) {
+			log.debug(
+					"Skipping start/end presence validation: status '{}' does not require start/end per ISiK IG",
+					incomingAppointment.getStatus().toCode());
+			return;
+		}
 		if (incomingAppointment.getStart() == null || incomingAppointment.getEnd() == null) {
 			log.info("Incoming Appointment: Start or end date are missing.");
 			OperationOutcomeUtils.addIssue(
@@ -145,6 +166,9 @@ public class AppointmentBookHandlerHelper {
 	public void validateStartAndEnd(Appointment incomingAppointment, Slot slot, OperationOutcome outcome) {
 		Date appointmentStart = incomingAppointment.getStart();
 		Date appointmentEnd = incomingAppointment.getEnd();
+		if (appointmentStart == null || appointmentEnd == null) {
+			return; // Not applicable when start/end are not set (e.g., status=proposed per ISiK IG)
+		}
 		Date slotStart = slot.getStart();
 		Date slotEnd = slot.getEnd();
 
@@ -182,25 +206,15 @@ public class AppointmentBookHandlerHelper {
 	}
 
 	public void createSlot(
-			Appointment incomingAppointment,
-			Reference scheduleReference,
-			List<Slot> overlappingFreeSlots,
-			RequestDetails requestDetails) {
+			Appointment incomingAppointment, Reference scheduleReference, RequestDetails requestDetails) {
 		Slot newSlot = new Slot();
-		newSlot.setStatus(Slot.SlotStatus.BUSY);
+		newSlot.setStatus(Slot.SlotStatus.FREE);
 		newSlot.setSchedule(scheduleReference);
 		newSlot.setStart(incomingAppointment.getStart());
 		newSlot.setEnd(incomingAppointment.getEnd());
 		var result = daoRegistry.getResourceDao(Slot.class).create(newSlot, requestDetails);
 		log.info("Slot successfully created. ID: {}", result.getId());
 		incomingAppointment.addSlot(new Reference(result.getId()));
-
-		// NOTE: We are not aiming for a real optimizing appointment booking system in this mock server.
-		// A real system can implement better handling of overlapping free slots here!
-		overlappingFreeSlots.forEach(slot -> {
-			slot.setStatus(Slot.SlotStatus.BUSY);
-			daoRegistry.getResourceDao(Slot.class).update(slot, requestDetails);
-		});
 	}
 
 	public List<Slot> findOverlappingSlots(
@@ -211,6 +225,10 @@ public class AppointmentBookHandlerHelper {
 		List<Slot> overlappingSlots = new ArrayList<>();
 		Date appointmentStart = incomingAppointment.getStart();
 		Date appointmentEnd = incomingAppointment.getEnd();
+
+		if (appointmentStart == null || appointmentEnd == null) {
+			return overlappingSlots; // Cannot determine overlap without appointment times
+		}
 
 		SearchParameterMap paramMap = new SearchParameterMap();
 		paramMap.add("schedule", new ReferenceParam(scheduleReference.getReference()));
@@ -254,14 +272,25 @@ public class AppointmentBookHandlerHelper {
 	}
 
 	public void createAppointment(
-			Appointment incomingAppointment, Reference cancelledApptId, RequestDetails theRequestDetails) {
+			Appointment incomingAppointment, String cancelledApptId, RequestDetails theRequestDetails) {
 		if (cancelledApptId != null) {
 			Extension apptReplacesExtension = new Extension(
 					"http://hl7.org/fhir/5.0/StructureDefinition/extension-Appointment.replaces",
-					new Reference(cancelledApptId.getReference()));
+					new Reference(cancelledApptId));
 			incomingAppointment.addExtension(apptReplacesExtension);
 		}
 		daoRegistry.getResourceDao(Appointment.class).create(incomingAppointment, theRequestDetails);
+	}
+
+	public void updateAppointment(
+			Appointment incomingAppointment, String cancelledApptId, RequestDetails theRequestDetails) {
+		if (cancelledApptId != null) {
+			Extension apptReplacesExtension = new Extension(
+					"http://hl7.org/fhir/5.0/StructureDefinition/extension-Appointment.replaces",
+					new Reference(cancelledApptId));
+			incomingAppointment.addExtension(apptReplacesExtension);
+		}
+		daoRegistry.getResourceDao(Appointment.class).update(incomingAppointment, theRequestDetails);
 	}
 
 	public void cancelAppointment(String cancelledApptId, RequestDetails requestDetails) {
@@ -278,5 +307,91 @@ public class AppointmentBookHandlerHelper {
 		} catch (ResourceNotFoundException e) {
 			return false;
 		}
+	}
+
+	public boolean isAppointmentExistent(String appointmentId, RequestDetails requestDetails) {
+		try {
+			daoRegistry.getResourceDao(Appointment.class).read(new IdType(appointmentId), requestDetails);
+			return true;
+		} catch (ResourceNotFoundException e) {
+			return false;
+		}
+	}
+
+	public String resolveOrCreatePatient(Patient incomingPatient, RequestDetails requestDetails) {
+		if (incomingPatient.hasId()) {
+			String patientId =
+					incomingPatient.getIdElement().toUnqualifiedVersionless().getValue();
+			try {
+				daoRegistry.getResourceDao(Patient.class).read(new IdType(patientId), requestDetails);
+				log.info("Patient already exists on server: {}", patientId);
+				return patientId;
+			} catch (ResourceNotFoundException e) {
+				log.info("Patient not found on server, creating: {}", patientId);
+			}
+		}
+		DaoMethodOutcome outcome = daoRegistry.getResourceDao(Patient.class).create(incomingPatient, requestDetails);
+		String createdId = outcome.getId().toUnqualifiedVersionless().getValue();
+		log.info("Patient created on server: {}", createdId);
+		return createdId;
+	}
+
+	public String findPatientReference(Appointment appointment) {
+		return appointment.getParticipant().stream()
+				.filter(p -> p.hasActor() && p.getActor().hasReference())
+				.map(p -> p.getActor().getReference())
+				.filter(ref -> ref.startsWith("Patient/"))
+				.findFirst()
+				.orElse(null);
+	}
+
+	/**
+	 * Atomically transitions a Slot from FREE to BUSY. Re-reads the current state before updating so
+	 * that a concurrent {@code $book} request that already claimed the slot causes a conflict rather
+	 * than a silent double-booking.
+	 *
+	 * @throws ca.uhn.fhir.rest.server.exceptions.ResourceVersionConflictException if the slot is no
+	 *     longer free at the time of update
+	 */
+	public void updateSlotToBusy(String slotReference, RequestDetails requestDetails) {
+		Slot slot = daoRegistry.getResourceDao(Slot.class).read(new IdType(slotReference), requestDetails);
+		if (slot.getStatus() != Slot.SlotStatus.FREE) {
+			throw new ca.uhn.fhir.rest.server.exceptions.ResourceVersionConflictException(String.format(
+					"Slot %s is no longer free (current status: %s). It may have been booked by a concurrent request.",
+					slotReference, slot.getStatus().toCode()));
+		}
+		slot.setStatus(Slot.SlotStatus.BUSY);
+		daoRegistry.getResourceDao(Slot.class).update(slot, requestDetails);
+		log.info("Slot {} status updated to BUSY", slotReference);
+	}
+
+	public String resolveOrCreateRelatedPerson(RelatedPerson incomingRelatedPerson, RequestDetails requestDetails) {
+		if (incomingRelatedPerson.hasId()) {
+			String relatedPersonId = incomingRelatedPerson
+					.getIdElement()
+					.toUnqualifiedVersionless()
+					.getValue();
+			try {
+				daoRegistry.getResourceDao(RelatedPerson.class).read(new IdType(relatedPersonId), requestDetails);
+				log.info("RelatedPerson already exists on server: {}", relatedPersonId);
+				return relatedPersonId;
+			} catch (ResourceNotFoundException e) {
+				log.info("RelatedPerson not found on server, creating: {}", relatedPersonId);
+			}
+		}
+		DaoMethodOutcome outcome =
+				daoRegistry.getResourceDao(RelatedPerson.class).create(incomingRelatedPerson, requestDetails);
+		String createdId = outcome.getId().toUnqualifiedVersionless().getValue();
+		log.info("RelatedPerson created on server: {}", createdId);
+		return createdId;
+	}
+
+	public String findRelatedPersonReference(Appointment appointment) {
+		return appointment.getParticipant().stream()
+				.filter(p -> p.hasActor() && p.getActor().hasReference())
+				.map(p -> p.getActor().getReference())
+				.filter(ref -> ref.startsWith("RelatedPerson/"))
+				.findFirst()
+				.orElse(null);
 	}
 }

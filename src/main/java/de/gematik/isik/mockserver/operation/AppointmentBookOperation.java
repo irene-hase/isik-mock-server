@@ -65,55 +65,82 @@ public class AppointmentBookOperation implements IResourceProvider {
 		log.info("Incoming Appointment/$book operation...");
 		final String body = theRequest.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
 
-		if (!body.isBlank()) {
-			final String preferHeader = theRequest.getHeader("Prefer");
-			if (preferHeader != null && preferHeader.contains("respond-async")) {
-				String jobId = UUID.randomUUID().toString();
-
-				CompletableFuture<AppointmentHandlerReturnObject> futureResult =
-						appointmentBookHandler.handleIncomingAppointmentAsync(body, theRequestDetails);
-
-				asyncAppointmentBookJobService.submitJob(jobId, futureResult);
-
-				String contentLocationUrl = buildContentLocationUrl(theRequest, jobId);
-				theResponse.setHeader("Content-Location", contentLocationUrl);
-				theResponse.setStatus(HttpServletResponse.SC_ACCEPTED);
-				return null;
-			}
-
-			try {
-				theResponse.setContentType("application/json");
-				log.debug("Incoming Appointment: {}", body);
-				final AppointmentHandlerReturnObject returnObject =
-						appointmentBookHandler.handleIncomingAppointment(body, theRequestDetails);
-				if (returnObject.isOperationSuccessful()) {
-					log.info(
-							"Appointment successfully created. ID: {}",
-							returnObject.getAppointment().getId());
-					String createdAppointment =
-							ctx.newJsonParser().encodeResourceToString(returnObject.getAppointment());
-					log.debug("Response Appointment: {}", createdAppointment);
-					theResponse.getWriter().print(createdAppointment);
-					theResponse.setStatus(HttpServletResponse.SC_CREATED);
-				} else {
-					log.info("Error in processing the incoming appointment");
-					OperationOutcome operationOutcome = returnObject.getOperationOutcome();
-					if (operationOutcome == null) {
-						throw new NullPointerException("AppointmentHandlerReturnObject has no OperationOutcome");
-					}
-					theResponse.getWriter().print(ctx.newJsonParser().encodeResourceToString(operationOutcome));
-					theResponse.setStatus(400);
-				}
-			} catch (final PreconditionFailedException e) {
-				log.info(e.getMessage());
-				theResponse.setStatus(HttpServletResponse.SC_PRECONDITION_FAILED);
-				final OperationOutcome outcome = new OperationOutcome();
-				outcome.addIssue()
-						.setSeverity(OperationOutcome.IssueSeverity.FATAL)
-						.setDiagnostics(e.getMessage());
-				theResponse.getWriter().print(ctx.newJsonParser().encodeResourceToString(outcome));
-			}
+		if (body.isBlank()) {
+			theResponse.setContentType("application/json");
+			theResponse.setStatus(400);
+			final OperationOutcome outcome = new OperationOutcome();
+			outcome.addIssue()
+					.setSeverity(OperationOutcome.IssueSeverity.ERROR)
+					.setCode(OperationOutcome.IssueType.REQUIRED)
+					.setDiagnostics("Request body must not be empty");
+			theResponse.getWriter().print(ctx.newJsonParser().encodeResourceToString(outcome));
+			return null;
 		}
+
+		final String preferHeader = theRequest.getHeader("Prefer");
+		if (preferHeader != null && preferHeader.contains("respond-async")) {
+			String jobId = UUID.randomUUID().toString();
+
+			CompletableFuture<AppointmentHandlerReturnObject> futureResult =
+					appointmentBookHandler.handleIncomingAppointmentAsync(body, theRequestDetails);
+
+			asyncAppointmentBookJobService.submitJob(jobId, futureResult);
+
+			String contentLocationUrl = buildContentLocationUrl(theRequest, jobId);
+			theResponse.setHeader("Content-Location", contentLocationUrl);
+			theResponse.setStatus(HttpServletResponse.SC_ACCEPTED);
+			return null;
+		}
+
+		try {
+			theResponse.setContentType("application/json");
+			log.debug("Incoming Appointment: {}", body);
+			final AppointmentHandlerReturnObject returnObject =
+					appointmentBookHandler.handleIncomingAppointment(body, theRequestDetails);
+			if (returnObject.isOperationSuccessful()) {
+				log.info(
+						"Appointment successfully {}. ID: {}",
+						returnObject.isUpdate() ? "updated" : "created",
+						returnObject.getAppointment().getId());
+				String createdAppointment = ctx.newJsonParser().encodeResourceToString(returnObject.getAppointment());
+				log.debug("Response Appointment: {}", createdAppointment);
+				theResponse.getWriter().print(createdAppointment);
+				theResponse.setStatus(returnObject.getHttpStatusCode());
+			} else {
+				log.info("Error in processing the incoming appointment");
+				OperationOutcome operationOutcome = returnObject.getOperationOutcome();
+				if (operationOutcome == null) {
+					throw new NullPointerException("AppointmentHandlerReturnObject has no OperationOutcome");
+				}
+				theResponse.getWriter().print(ctx.newJsonParser().encodeResourceToString(operationOutcome));
+				theResponse.setStatus(returnObject.getHttpStatusCode());
+			}
+		} catch (final PreconditionFailedException e) {
+			log.info(e.getMessage());
+			theResponse.setStatus(HttpServletResponse.SC_PRECONDITION_FAILED);
+			final OperationOutcome outcome = new OperationOutcome();
+			outcome.addIssue().setSeverity(OperationOutcome.IssueSeverity.FATAL).setDiagnostics(e.getMessage());
+			theResponse.getWriter().print(ctx.newJsonParser().encodeResourceToString(outcome));
+		} catch (final ca.uhn.fhir.rest.server.exceptions.ResourceVersionConflictException e) {
+			log.info("Slot conflict during booking: {}", e.getMessage());
+			theResponse.setStatus(HttpServletResponse.SC_CONFLICT);
+			final OperationOutcome outcome = new OperationOutcome();
+			outcome.addIssue()
+					.setSeverity(OperationOutcome.IssueSeverity.ERROR)
+					.setCode(OperationOutcome.IssueType.CONFLICT)
+					.setDiagnostics(e.getMessage());
+			theResponse.getWriter().print(ctx.newJsonParser().encodeResourceToString(outcome));
+		} catch (final IllegalArgumentException e) {
+			log.info("Bad request: {}", e.getMessage());
+			theResponse.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+			final OperationOutcome outcome = new OperationOutcome();
+			outcome.addIssue()
+					.setSeverity(OperationOutcome.IssueSeverity.ERROR)
+					.setCode(OperationOutcome.IssueType.INVALID)
+					.setDiagnostics(e.getMessage());
+			theResponse.getWriter().print(ctx.newJsonParser().encodeResourceToString(outcome));
+		}
+
 		return null;
 	}
 

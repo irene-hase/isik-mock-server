@@ -1,0 +1,75 @@
+{
+  "resourceType": "Encounter",
+  "id": "Appointment-Contact-Example",
+  "meta": {
+    "profile": [
+      "https://gematik.de/fhir/isik/StructureDefinition/ISiKTerminKontaktMitGesundheitseinrichtung"
+    ]
+  },
+  "identifier": [
+    {
+      "type": {
+        "coding": [
+          {
+            "code": "VN",
+            "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+          }
+        ]
+      },
+      "system": "https://test.krankenhaus.de/fhir/sid/fallnr",
+      "value": "9876543210"
+    }
+  ],
+  "status": "planned",
+  "class": {
+    "code": "AMB",
+    "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode"
+  },
+  "type": [
+    {
+      "coding": [
+        {
+          "system": "http://fhir.de/CodeSystem/Kontaktebene",
+          "code": "abteilungskontakt"
+        }
+      ]
+    },
+    {
+      "coding": [
+        {
+          "code": "normalstationaer",
+          "system": "http://fhir.de/CodeSystem/kontaktart-de"
+        }
+      ]
+    }
+  ],
+  "serviceType": {
+    "coding": [
+      {
+        "code": "177",
+        "system": "http://terminology.hl7.org/CodeSystem/service-type"
+      }
+    ]
+  },
+  "subject": {
+    "reference": "Patient/Mustermann"
+  },
+  "appointment": [
+    {
+      "reference": "Appointment/Booking-Example"
+    }
+  ],
+  "serviceProvider": {
+    "identifier": {
+      "value": "123456789"
+    },
+    "display": "Krankenhaus"
+  },
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/5.0/StructureDefinition/extension-Encounter.plannedStartDate",
+      "valueDateTime": "2027-01-01"
+    }
+  ]
+}
+

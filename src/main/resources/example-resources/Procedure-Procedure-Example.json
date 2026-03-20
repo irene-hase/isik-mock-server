@@ -1,0 +1,36 @@
+{
+  "resourceType": "Procedure",
+  "id": "Procedure-Example",
+  "meta": {
+    "profile": [
+      "https://gematik.de/fhir/isik/StructureDefinition/ISiKProzedur"
+    ]
+  },
+  "status": "completed",
+  "category": {
+    "coding": [
+      {
+        "system": "http://snomed.info/sct",
+        "code": "387713003",
+        "display": "Surgical procedure"
+      }
+    ]
+  },
+  "code": {
+    "coding": [
+      {
+        "system": "http://fhir.de/CodeSystem/bfarm/ops",
+        "version": "2025",
+        "code": "5-470",
+        "display": "Appendektomie"
+      }
+    ]
+  },
+  "subject": {
+    "reference": "Patient/Mustermann"
+  },
+  "encounter": {
+    "reference": "Encounter/Encounter-Read-Finished-Example"
+  },
+  "performedDateTime": "2021-02-13T10:30:00+01:00"
+}

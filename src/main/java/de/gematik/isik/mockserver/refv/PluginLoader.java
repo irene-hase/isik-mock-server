@@ -41,6 +41,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URL;
@@ -94,21 +95,25 @@ public class PluginLoader {
 		}
 
 		for (var zipFile : zipFiles) {
-			var configFile = zipFile.stream()
-					.filter(e -> e.getName().endsWith("config.yaml"))
-					.findFirst();
-			if (configFile.isEmpty()) {
-				throw new IllegalArgumentException("No config file found for plugin " + zipFile.getName());
-			}
+			try {
+				var configFile = zipFile.stream()
+						.filter(e -> e.getName().endsWith("config.yaml"))
+						.findFirst();
+				if (configFile.isEmpty()) {
+					throw new IllegalArgumentException("No config file found for plugin " + zipFile.getName());
+				}
 
-			Plugin plugin = Plugin.createFromZipFile(zipFile);
-			if (plugins.containsKey(plugin.getId())) {
-				log.warn(
-						"Duplicate plugin id found: '{}'. Change the id of the plugin in the plugin"
-								+ " configuration file and try again",
-						plugin.getId());
-			} else {
-				plugins.put(plugin.getId(), plugin);
+				Plugin plugin = Plugin.createFromZipFile(zipFile);
+				if (plugins.containsKey(plugin.getId())) {
+					log.warn(
+							"Duplicate plugin id found: '{}'. Change the id of the plugin in the plugin"
+									+ " configuration file and try again",
+							plugin.getId());
+				} else {
+					plugins.put(plugin.getId(), plugin);
+				}
+			} finally {
+				closeQuietly(zipFile);
 			}
 		}
 
@@ -130,18 +135,13 @@ public class PluginLoader {
 	private void readResourcesFromFolderIfNonJarEnvironment(String folder, List<ZipFile> resources) {
 		var paths = getAllFilesFromResourceSubfolder(folder);
 		for (File file : paths) {
-			Path path = file.toPath();
-			ZipFile resource;
-			try (final var bomStream = new BOMInputStream(Files.newInputStream(path))) {
-				resource = convertToZipFile(bomStream, path.toString());
-			}
-			resources.add(resource);
+			resources.add(new ZipFile(file));
 		}
 	}
 
 	@SneakyThrows
 	private ZipFile convertToZipFile(BOMInputStream bomStream, String string) {
-		// Convert the BOMInputStream to ZipFile
+		// Convert the BOMInputStream to ZipFile via a temp file
 		File tempFile = File.createTempFile("plugin-" + string + "-", ".zip");
 		tempFile.deleteOnExit();
 		try (OutputStream out = new FileOutputStream(tempFile)) {
@@ -176,7 +176,9 @@ public class PluginLoader {
 
 			for (Resource resource : jarResources) {
 				ZipFile r;
-				try (final var bomStream = new BOMInputStream(resource.getInputStream())) {
+				try (final var bomStream = BOMInputStream.builder()
+						.setInputStream(resource.getInputStream())
+						.get()) {
 					String filename = resource.getFilename();
 					if (filename == null) throw new IllegalStateException("Could not retrieve resource filename");
 
@@ -192,11 +194,6 @@ public class PluginLoader {
 		}
 	}
 
-	@SneakyThrows
-	private static ZipFile getZipFile(String pluginPath, String fileName) {
-		return new ZipFile(pluginPath + File.separator + fileName);
-	}
-
 	public Plugin getPlugin(String validationModuleId) {
 		Plugin plugin = plugins.get(validationModuleId);
 		if (plugin == null) {
@@ -210,5 +207,13 @@ public class PluginLoader {
 					validationModuleId, supportedValidationModules));
 		}
 		return plugin;
+	}
+
+	private static void closeQuietly(ZipFile zipFile) {
+		try {
+			zipFile.close();
+		} catch (IOException e) {
+			log.warn("Failed to close ZipFile: {}", zipFile.getName(), e);
+		}
 	}
 }

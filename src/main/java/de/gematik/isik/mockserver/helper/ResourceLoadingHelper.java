@@ -46,8 +46,14 @@ public class ResourceLoadingHelper {
 
 	public static String loadResourceAsString(String directory, String resourcePath) {
 		try {
-			Path fullPath = Path.of(directory, resourcePath);
+			Path basePath = Path.of(directory).normalize().toAbsolutePath();
+			Path fullPath = basePath.resolve(resourcePath).normalize().toAbsolutePath();
+			if (!fullPath.startsWith(basePath)) {
+				throw new ResourceLoadingException("Path traversal detected: " + resourcePath, null);
+			}
 			return Files.readString(fullPath);
+		} catch (ResourceLoadingException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new ResourceLoadingException(
 					"Failed to load resource from directory: " + directory + ", resource: " + resourcePath, e);

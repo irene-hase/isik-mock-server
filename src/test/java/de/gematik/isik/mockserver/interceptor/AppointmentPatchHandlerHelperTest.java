@@ -306,16 +306,43 @@ class AppointmentPatchHandlerHelperTest {
 	}
 
 	@Test
-	void testOperationTypeNotReplaceLeadsToErrorsInOperationOutcome() {
-		String body = ResourceLoadingHelper.loadResourceAsString("fhir-examples/invalid/invalid-patch-parameters-type.json");
+	void testNonReplaceOnImmutableFieldLeadsToErrorsInOperationOutcome() {
+		String body = ResourceLoadingHelper.loadResourceAsString(
+				"fhir-examples/invalid/invalid-patch-add-immutable-field-parameters.json");
 		Parameters parameters = (Parameters) FhirContext.forR4().newJsonParser().parseResource(body);
 		OperationOutcome outcome = new OperationOutcome();
 
-		appointmentPatchHandlerHelper.validateParametersOfTypeReplace(parameters, outcome);
+		appointmentPatchHandlerHelper.validateImmutableFieldOperations(parameters, outcome);
 
 		assertThat(OperationOutcomeUtils.hasErrorIssue(outcome)).isTrue();
 		boolean hasExpectedMessage = outcome.getIssue().stream()
-				.anyMatch(issue -> issue.getDiagnostics().contains("This server only supports operation type 'replace' but was 'add'"));
+				.anyMatch(issue -> issue.getDiagnostics()
+						.contains("Immutable fields only support operation type 'replace' but was 'add'"));
 		assertThat(hasExpectedMessage).isTrue();
+	}
+
+	@Test
+	void testNonReplaceOnMutableFieldDoesNotLeadToErrors() {
+		String body = ResourceLoadingHelper.loadResourceAsString(
+				"fhir-examples/valid/valid-patch-add-comment-parameters.json");
+		Parameters parameters = (Parameters) FhirContext.forR4().newJsonParser().parseResource(body);
+		OperationOutcome outcome = new OperationOutcome();
+
+		appointmentPatchHandlerHelper.validateImmutableFieldOperations(parameters, outcome);
+
+		assertThat(OperationOutcomeUtils.hasErrorIssue(outcome)).isFalse();
+	}
+
+	@Test
+	void testReplaceOnImmutableFieldDoesNotLeadToErrors() {
+		String body = ResourceLoadingHelper.loadResourceAsString(
+				"fhir-examples/invalid/invalid-patch-parameters-type.json");
+		Parameters parameters = (Parameters) FhirContext.forR4().newJsonParser().parseResource(body);
+		OperationOutcome outcome = new OperationOutcome();
+
+		// The existing fixture uses 'add' on 'Appointment.actor' — a mutable field
+		appointmentPatchHandlerHelper.validateImmutableFieldOperations(parameters, outcome);
+
+		assertThat(OperationOutcomeUtils.hasErrorIssue(outcome)).isFalse();
 	}
 }

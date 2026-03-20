@@ -26,11 +26,18 @@ package de.gematik.isik.mockserver;
  */
 
 import ca.uhn.fhir.context.FhirContext;
+import ca.uhn.fhir.jpa.api.dao.DaoRegistry;
 import ca.uhn.fhir.jpa.starter.Application;
 import ca.uhn.fhir.parser.IParser;
+import ca.uhn.fhir.rest.api.server.RequestDetails;
+import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.Extension;
+import org.hl7.fhir.r4.model.IdType;
+import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.Slot;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -57,10 +64,29 @@ class AppointmentBookOperationIT {
 	@Autowired
 	private TestRestTemplate restTemplate;
 
+	@Autowired
+	private DaoRegistry daoRegistry;
+
 	private final IParser parser = FhirContext.forR4().newJsonParser();
 
 	private String getServerUrl() {
 		return String.format("http://localhost:%s/fhir/", port);
+	}
+
+	@BeforeEach
+	void resetSlotStatus() {
+		// Reset Slot/Free-Block to 'free' so that each test starts with clean state.
+		// Tests share the Spring Boot context and database, so previous successful bookings
+		// leave the slot in 'busy' status which would cause subsequent tests to fail.
+		try {
+			Slot freeBlock = daoRegistry.getResourceDao(Slot.class).read(new IdType("Slot/Free-Block"), (RequestDetails) null);
+			if (freeBlock.getStatus() != Slot.SlotStatus.FREE) {
+				freeBlock.setStatus(Slot.SlotStatus.FREE);
+				daoRegistry.getResourceDao(Slot.class).update(freeBlock, (RequestDetails) null);
+			}
+		} catch (ResourceNotFoundException e) {
+			// Slot not loaded yet (e.g. first test); will be created from example resources
+		}
 	}
 
 	@ParameterizedTest
@@ -82,7 +108,7 @@ class AppointmentBookOperationIT {
 		);
 
 		boolean isValid = !input.contains("invalid");
-		assertThat(response.getStatusCode().value()).isEqualTo(isValid ? 201 : 400);
+		assertThat(response.getStatusCode().value()).isEqualTo(isValid ? 201 : 422);
 		if(!isValid) {
 			assertThat(response.getBody()).isNotNull();
 			assertThat(response.getBody()).contains("The referenced Patient has 'active=false' but must be 'active=true'.");
@@ -116,12 +142,9 @@ class AppointmentBookOperationIT {
 				String.class
 		);
 
-		assertThat(response1.getStatusCode().value()).isEqualTo(400);
+		assertThat(response1.getStatusCode().value()).isEqualTo(422);
 		assertThat(response1.getBody()).contains(
-				"Incoming Appointment: Start and end are overlapping with existing slots. " +
-						"Incoming Appointment Start: Fri Jan 01 15:30:00 CET 2027, Incoming Appointment End: Fri Jan 01 15:59:00 CET 2027, " +
-						"Overlapping Slots: \\n" +
-						"Slot/Busy-Block/_history/1: Start: Fri Jan 01 15:00:00 CET 2027, End: Fri Jan 01 16:00:00 CET 2027");
+				"Incoming Appointment: Start and end are overlapping with existing busy slots.");
 	}
 
 	@Test
@@ -143,6 +166,9 @@ class AppointmentBookOperationIT {
 
 		Appointment cancelledAppointment = (Appointment) parser.parseResource(response1.getBody());
 		assertThat(cancelledAppointment.getStatus()).isEqualTo(Appointment.AppointmentStatus.BOOKED);
+
+		// Reset the slot so the rescheduling can reuse it
+		resetSlotStatus();
 
 		String body = loadResourceAsString("fhir-examples/valid/valid-appointment-rescheduling-parameters.json");
 		// Note:
@@ -203,15 +229,16 @@ class AppointmentBookOperationIT {
 				.contains("/async-jobs/");
 
 		// Now poll the async job endpoint until it is completed.
+		// The first async booking may be slow due to Referenzvalidator plugin initialization.
 		ResponseEntity<String> asyncResponse = null;
-		int maxRetries = 20;
+		int maxRetries = 60;
 		int retry = 0;
 		while (retry < maxRetries) {
 			asyncResponse = restTemplate.getForEntity(contentLocation, String.class);
 			if (asyncResponse.getStatusCode().value() != 202) {
 				break;
 			}
-			Thread.sleep(500);
+			Thread.sleep(1000);
 			retry++;
 		}
 
@@ -221,5 +248,210 @@ class AppointmentBookOperationIT {
 		Appointment appointment = parser.parseResource(Appointment.class, asyncResponse.getBody());
 		assertThat(appointment).isNotNull();
 		assertThat(appointment.getStatus()).isEqualTo(Appointment.AppointmentStatus.BOOKED);
+	}
+
+	@Test
+	void testEmptyBodyReturns400() {
+		String url = String.format("%s/Appointment/$book", getServerUrl());
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("Content-Type", "application/fhir+json");
+		headers.add("Accept", "application/fhir+json");
+		HttpEntity<String> requestEntity = new HttpEntity<>("", headers);
+
+		ResponseEntity<String> response = restTemplate.exchange(
+				url,
+				HttpMethod.POST,
+				requestEntity,
+				String.class
+		);
+
+		assertThat(response.getStatusCode().value()).isEqualTo(400);
+		assertThat(response.getBody()).isNotNull();
+
+		OperationOutcome outcome = (OperationOutcome) parser.parseResource(response.getBody());
+		assertThat(outcome.getIssue())
+				.anyMatch(issue -> issue.getDiagnostics().contains("Request body must not be empty"));
+	}
+
+	@Test
+	void testAppointmentReschedulingWithValueUri() {
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("Content-Type", "application/fhir+json");
+		headers.add("Accept", "application/fhir+json");
+		String url = String.format("%s/Appointment/$book", getServerUrl());
+
+		// First book an appointment to be cancelled later
+		String cancelledAppointmentBody = loadResourceAsString("fhir-examples/valid/valid-appointment.json");
+		HttpEntity<String> requestEntity1 = new HttpEntity<>(cancelledAppointmentBody, headers);
+
+		ResponseEntity<String> response1 = restTemplate.exchange(
+				url,
+				HttpMethod.POST,
+				requestEntity1,
+				String.class
+		);
+
+		Appointment cancelledAppointment = (Appointment) parser.parseResource(response1.getBody());
+		assertThat(cancelledAppointment.getStatus()).isEqualTo(Appointment.AppointmentStatus.BOOKED);
+
+		// Reset the slot so the rescheduling can reuse it
+		resetSlotStatus();
+
+		// Use the URI-based rescheduling fixture
+		String body = loadResourceAsString("fhir-examples/valid/valid-rescheduling-parameters-with-uri.json");
+		String cancelledApptId = cancelledAppointment.getId().replace("/_history/1", "");
+		body = body.replace("Appointment/CANCELLED_APPT_ID", cancelledApptId);
+		HttpEntity<String> requestEntity = new HttpEntity<>(body, headers);
+
+		ResponseEntity<String> response = restTemplate.exchange(
+				url,
+				HttpMethod.POST,
+				requestEntity,
+				String.class
+		);
+		assertThat(response.getStatusCode().value()).isEqualTo(201);
+
+		Appointment newAppointment = (Appointment) parser.parseResource(response.getBody());
+		Extension extension = newAppointment.getExtensionByUrl("http://hl7.org/fhir/5.0/StructureDefinition/extension-Appointment.replaces");
+		assertThat(extension).isNotNull();
+		Reference ref = (Reference) extension.getValue();
+		assertThat(ref.getReference()).isEqualTo(cancelledApptId);
+	}
+
+	@Test
+	void testBookingWithInlinePatientParameter() {
+		String body = loadResourceAsString("fhir-examples/valid/valid-booking-parameters-with-patient.json");
+		String url = String.format("%s/Appointment/$book", getServerUrl());
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("Content-Type", "application/fhir+json");
+		headers.add("Accept", "application/fhir+json");
+		HttpEntity<String> requestEntity = new HttpEntity<>(body, headers);
+
+		ResponseEntity<String> response = restTemplate.exchange(
+				url,
+				HttpMethod.POST,
+				requestEntity,
+				String.class
+		);
+
+		assertThat(response.getStatusCode().value()).isEqualTo(201);
+
+		Appointment appointment = (Appointment) parser.parseResource(response.getBody());
+		assertThat(appointment.getStatus()).isEqualTo(Appointment.AppointmentStatus.BOOKED);
+		assertThat(appointment.getParticipant())
+				.anyMatch(p -> p.getActor().getReference().contains("Patient"));
+	}
+
+	@Test
+	void testSemanticValidationErrorReturnsHttp422() {
+		String body = loadResourceAsString("fhir-examples/invalid/invalid-appointment-with-start-and-end.json");
+		String url = String.format("%s/Appointment/$book", getServerUrl());
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("Content-Type", "application/fhir+json");
+		headers.add("Accept", "application/fhir+json");
+		HttpEntity<String> requestEntity = new HttpEntity<>(body, headers);
+
+		ResponseEntity<String> response = restTemplate.exchange(
+				url,
+				HttpMethod.POST,
+				requestEntity,
+				String.class
+		);
+
+		assertThat(response.getStatusCode().value()).isEqualTo(422);
+		assertThat(response.getBody()).isNotNull();
+
+		OperationOutcome outcome = (OperationOutcome) parser.parseResource(response.getBody());
+		assertThat(outcome.getIssue()).isNotEmpty();
+	}
+
+	@Test
+	void testBookingWithInlineRelatedPersonParameter() {
+		String body = loadResourceAsString("fhir-examples/valid/valid-booking-parameters-with-related-person.json");
+		String url = String.format("%s/Appointment/$book", getServerUrl());
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("Content-Type", "application/fhir+json");
+		headers.add("Accept", "application/fhir+json");
+		HttpEntity<String> requestEntity = new HttpEntity<>(body, headers);
+
+		ResponseEntity<String> response = restTemplate.exchange(
+				url,
+				HttpMethod.POST,
+				requestEntity,
+				String.class
+		);
+
+		assertThat(response.getStatusCode().value()).isEqualTo(201);
+
+		Appointment appointment = (Appointment) parser.parseResource(response.getBody());
+		assertThat(appointment.getStatus()).isEqualTo(Appointment.AppointmentStatus.BOOKED);
+		assertThat(appointment.getParticipant())
+				.anyMatch(p -> p.getActor().getReference().contains("RelatedPerson"));
+	}
+
+	@Test
+	void testBookAppointmentWithNoStartEndPopulatesFromSlot() {
+		// ISiK IG: "Nur für die Status 'proposed', 'cancelled', 'waitlist' existiert kein Wert."
+		// An Appointment with status=proposed and no start/end should be bookable
+		// when a Slot is referenced. The server populates start/end from the Slot.
+		String body = loadResourceAsString("fhir-examples/valid/valid-appointment-no-start-end.json");
+		String url = String.format("%s/Appointment/$book", getServerUrl());
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("Content-Type", "application/fhir+json");
+		headers.add("Accept", "application/fhir+json");
+		HttpEntity<String> requestEntity = new HttpEntity<>(body, headers);
+
+		ResponseEntity<String> response = restTemplate.exchange(
+				url,
+				HttpMethod.POST,
+				requestEntity,
+				String.class
+		);
+
+		assertThat(response.getStatusCode().value()).isEqualTo(201);
+		assertThat(response.getBody()).isNotNull();
+
+		Appointment appointment = (Appointment) parser.parseResource(response.getBody());
+		assertThat(appointment.getStatus()).isEqualTo(Appointment.AppointmentStatus.BOOKED);
+		assertThat(appointment.getStart())
+				.as("Start should be populated from the referenced Slot")
+				.isNotNull();
+		assertThat(appointment.getEnd())
+				.as("End should be populated from the referenced Slot")
+				.isNotNull();
+	}
+
+	@Test
+	void testBookAppointmentWithNoStartEndNoSlotWithScheduleReturnsError() {
+		// When there's no Slot reference and no start/end, even with a Schedule,
+		// the server cannot create a Slot and should return 422.
+		String body = loadResourceAsString(
+				"fhir-examples/invalid/invalid-booking-parameters-no-dates-no-slot.json");
+		String url = String.format("%s/Appointment/$book", getServerUrl());
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("Content-Type", "application/fhir+json");
+		headers.add("Accept", "application/fhir+json");
+		HttpEntity<String> requestEntity = new HttpEntity<>(body, headers);
+
+		ResponseEntity<String> response = restTemplate.exchange(
+				url,
+				HttpMethod.POST,
+				requestEntity,
+				String.class
+		);
+
+		assertThat(response.getStatusCode().value()).isEqualTo(422);
+		assertThat(response.getBody()).isNotNull();
+
+		OperationOutcome outcome = (OperationOutcome) parser.parseResource(response.getBody());
+		assertThat(outcome.getIssue())
+				.anyMatch(issue -> issue.getDiagnostics().contains(
+						"Start and end dates are required when no Slot is referenced and a Schedule is provided."));
 	}
 }

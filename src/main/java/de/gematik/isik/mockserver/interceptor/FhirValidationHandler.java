@@ -25,29 +25,29 @@ package de.gematik.isik.mockserver.interceptor;
  * #L%
  */
 
+import ca.uhn.fhir.validation.ResultSeverityEnum;
 import ca.uhn.fhir.validation.SingleValidationMessage;
 import de.gematik.isik.mockserver.refv.PluginLoader;
 import de.gematik.isik.mockserver.refv.PluginMappingResolver;
 import de.gematik.refv.Plugin;
 import de.gematik.refv.SupportedValidationModule;
 import de.gematik.refv.commons.exceptions.ValidationModuleInitializationException;
-import de.gematik.refv.commons.validation.ValidationModule;
 import de.gematik.refv.commons.validation.ValidationOptions;
 import de.gematik.refv.commons.validation.ValidationResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.hl7.fhir.r4.model.Bundle;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 import static de.gematik.isik.mockserver.interceptor.FhirValidationHandlerHelper.ISIK_5_PLUGIN_ID;
-import static de.gematik.isik.mockserver.interceptor.FhirValidationHandlerHelper.ISIK_LEGACY_PROFILE_VERSION;
 import static de.gematik.isik.mockserver.interceptor.FhirValidationUtils.getValidationResult;
 
 @Component
@@ -75,12 +75,17 @@ public class FhirValidationHandler {
 		Optional<String> isikProfile = FhirValidationHandlerHelper.findIsikProfile(resource);
 		final String profileToUse =
 				isikProfile.orElse(resource.getMeta().getProfile().getFirst().getValue());
-
 		final String pluginId = pluginMappingResolver.getPluginIdFromProfile(profileToUse);
-		final Plugin plugin = pluginLoader.getPlugin(pluginId);
 
-		var validationModule = fhirValidationBundleHandler.getOrCreateModule(plugin);
-		return validationModule.validateString(body);
+		try {
+			final Plugin plugin = pluginLoader.getPlugin(pluginId);
+			var validationModule = fhirValidationBundleHandler.getOrCreateModule(plugin);
+			return validationModule.validateString(body);
+		} catch (IllegalArgumentException iae) {
+			log.warn("No plugin found for profile {}", profileToUse);
+			return ValidationResult.createInstance(
+					ResultSeverityEnum.ERROR, "Profile unsupported: " + profileToUse, "Resource.meta.profile[0]");
+		}
 	}
 
 	private ValidationResult validateResourceWithResourceType(IBaseResource resource, String body)
@@ -97,21 +102,29 @@ public class FhirValidationHandler {
 			return validateResourceWithCoreModule(resourceType, body);
 		}
 
-		plugins =
-				new ArrayList<>(pluginIds.stream().map(pluginLoader::getPlugin).toList());
+		try {
+			plugins = new ArrayList<>(
+					pluginIds.stream().map(pluginLoader::getPlugin).toList());
 
-		if (resourceType.equals("Bundle")) {
-			return fhirValidationBundleHandler.validateBundleResourceWithPlugins(body, plugins, profileUrls);
-		} else {
-			List<ValidationOptions> validationOptionsList = profileUrls.stream()
-					.map(profileUrl -> {
-						ValidationOptions validationOptions = ValidationOptions.getDefaults();
-						validationOptions.setProfiles(Collections.singletonList(profileUrl));
-						return validationOptions;
-					})
-					.toList();
+			if (resourceType.equals("Bundle")) {
+				List<String> filteredProfileUrls = filterBundleProfilesByType(resource, profileUrls);
+				return fhirValidationBundleHandler.validateBundleResourceWithPlugins(
+						body, plugins, filteredProfileUrls);
+			} else {
+				List<ValidationOptions> validationOptionsList = profileUrls.stream()
+						.map(profileUrl -> {
+							ValidationOptions validationOptions = ValidationOptions.getDefaults();
+							validationOptions.setProfiles(Collections.singletonList(profileUrl));
+							return validationOptions;
+						})
+						.toList();
 
-			return validateResourceWithPlugins(body, plugins, validationOptionsList);
+				return validateResourceWithPlugins(body, plugins, validationOptionsList);
+			}
+		} catch (IllegalArgumentException iae) {
+			log.warn("Resource not known: {}", resourceType);
+			return ValidationResult.createInstance(
+					ResultSeverityEnum.ERROR, "Failed to validate Resource - unsupported", "Resource.meta.profile[0]");
 		}
 	}
 
@@ -121,7 +134,7 @@ public class FhirValidationHandler {
 		String profileUrl = "http://hl7.org/fhir/StructureDefinition/" + resourceType;
 		ValidationOptions validationOptions = ValidationOptions.getDefaults();
 		validationOptions.setProfiles(Collections.singletonList(profileUrl));
-		var coreModule = FhirValidationHandlerHelper.createFromModule(SupportedValidationModule.CORE);
+		var coreModule = fhirValidationBundleHandler.getOrCreateCoreModule(SupportedValidationModule.CORE);
 
 		return coreModule.validateString(body, validationOptions);
 	}
@@ -130,69 +143,85 @@ public class FhirValidationHandler {
 			String body, List<Plugin> plugins, List<ValidationOptions> validationOptionsList)
 			throws ValidationModuleInitializationException {
 
-		// Handle ISiK5 validation separately, especially for use-cases where Profiles are only known to
-		// Isik5 (e.g. Location)
-		final var isik5ValidationMessages = new LinkedList<SingleValidationMessage>();
 		final var allValidationMessages = new LinkedList<SingleValidationMessage>();
 
 		// Validate with ISiK5 first
 		final var isik5Plugin = FhirValidationHandlerHelper.findPlugin(plugins, ISIK_5_PLUGIN_ID);
-		final var isik5ValidationOptions =
-				FhirValidationHandlerHelper.filterOutByProfile(validationOptionsList, ISIK_LEGACY_PROFILE_VERSION);
 
-		if (isik5Plugin.isPresent() && !isik5ValidationOptions.isEmpty()) {
+		if (isik5Plugin.isPresent() && !validationOptionsList.isEmpty()) {
 			log.info("Validating resource using ISiK5 plugin first...");
 			final var isik5ValidationModule = fhirValidationBundleHandler.getOrCreateModule(isik5Plugin.get());
 			final var validationResult = FhirValidationHandlerHelper.performValidation(
-					body, isik5ValidationModule, isik5ValidationOptions.getFirst());
+					body, isik5ValidationModule, validationOptionsList.getFirst());
 			if (validationResult.isValid()) {
 				return validationResult;
 			}
 
 			log.warn("ISiK5 validation found issues, proceeding with legacy modules...");
-			isik5ValidationMessages.addAll(validationResult.getValidationMessages());
+			allValidationMessages.addAll(validationResult.getValidationMessages());
 		}
 
-		// Remove ISiK5 plugin from the list to avoid duplicate validation
-		List<Plugin> fallbackPlugins;
-		if (isik5Plugin.isPresent()) {
-			fallbackPlugins = FhirValidationHandlerHelper.filterOutById(
-					plugins, isik5Plugin.get().getId());
-		} else {
-			fallbackPlugins = plugins;
+		return getValidationResult(allValidationMessages, List.of());
+	}
+
+	/**
+	 * Mapping from {@link Bundle.BundleType} to profile URL substrings used to filter the full list
+	 * of Bundle profile URLs so that only the profile(s) matching the actual bundle type are used
+	 * during validation.
+	 */
+	private static final Map<Bundle.BundleType, String> BUNDLE_TYPE_PROFILE_KEYWORDS = Map.of(
+			Bundle.BundleType.DOCUMENT, "ISiKBerichtBundle",
+			Bundle.BundleType.TRANSACTION, "ISiKMedikationTransaction",
+			Bundle.BundleType.SEARCHSET, "ISiKDokumentenSuchergebnisse");
+
+	/**
+	 * Filters the list of Bundle profile URLs based on the actual {@code Bundle.type} of the
+	 * resource. This prevents cross-profile validation failures, e.g. a transaction bundle being
+	 * validated against a document bundle profile.
+	 *
+	 * <p>If the Bundle.type is unknown or no matching profiles are found, all profile URLs are
+	 * returned unchanged (best-effort validation).
+	 *
+	 * <p>Note: {@code ISiKMedikationTransactionResponse} is excluded for incoming validation because
+	 * transaction-response bundles are server-generated, not client-submitted.
+	 *
+	 * @param resource the parsed FHIR resource (expected to be a Bundle)
+	 * @param profileUrls all profile URLs mapped to the Bundle resource type
+	 * @return the filtered list of profile URLs appropriate for the bundle's type
+	 */
+	private List<String> filterBundleProfilesByType(IBaseResource resource, List<String> profileUrls) {
+		if (!(resource instanceof Bundle bundle)) {
+			return profileUrls;
 		}
 
-		List<ValidationModule> fallbackModules = new ArrayList<>();
-		for (Plugin plugin : fallbackPlugins) {
-			fallbackModules.add(fhirValidationBundleHandler.getOrCreateModule(plugin));
+		Bundle.BundleType bundleType = bundle.getType();
+		if (bundleType == null) {
+			log.warn("Bundle has no type set; validating against all known Bundle profiles");
+			return profileUrls;
 		}
 
-		// Only ISiK 3 Profiles must be considered
-		List<ValidationOptions> fallbackValidationOptions =
-				FhirValidationHandlerHelper.findByProfile(validationOptionsList, ISIK_LEGACY_PROFILE_VERSION);
-
-		// Validate with remaining modules using v3 profiles only
-		List<CompletableFuture<ValidationResult>> futures = new ArrayList<>();
-		for (ValidationModule module : fallbackModules) {
-			for (ValidationOptions options : fallbackValidationOptions) {
-				futures.add(CompletableFuture.supplyAsync(() -> {
-					var result = module.validateString(body, options);
-					synchronized (allValidationMessages) {
-						if (!result.isValid()) {
-							allValidationMessages.addAll(result.getValidationMessages());
-						}
-					}
-					return result;
-				}));
-			}
+		String keyword = BUNDLE_TYPE_PROFILE_KEYWORDS.get(bundleType);
+		if (keyword == null) {
+			log.info(
+					"No specific profile mapping for Bundle.type={}; validating against all known Bundle profiles",
+					bundleType.toCode());
+			return profileUrls;
 		}
 
-		// Keep until Isik5 and Isik3 validators are part of this server (dual-mode)
-		// Report Isik5 errors only if also Isik3 validation found errors
-		if (!allValidationMessages.isEmpty()) {
-			allValidationMessages.addAll(isik5ValidationMessages);
+		List<String> filtered = profileUrls.stream()
+				.filter(url -> url.contains(keyword))
+				// Exclude TransactionResponse for incoming validation
+				.filter(url -> !url.contains("TransactionResponse"))
+				.toList();
+
+		if (filtered.isEmpty()) {
+			log.warn(
+					"No matching profiles found for Bundle.type={}; falling back to all Bundle profiles",
+					bundleType.toCode());
+			return profileUrls;
 		}
 
-		return getValidationResult(allValidationMessages, futures);
+		log.info("Filtered Bundle profiles for type={}: {}", bundleType.toCode(), filtered);
+		return filtered;
 	}
 }

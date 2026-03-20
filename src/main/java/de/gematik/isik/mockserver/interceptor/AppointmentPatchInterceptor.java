@@ -32,6 +32,7 @@ import ca.uhn.fhir.interceptor.api.Pointcut;
 import ca.uhn.fhir.parser.IParser;
 import ca.uhn.fhir.rest.api.EncodingEnum;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
+import ca.uhn.fhir.rest.api.server.SystemRequestDetails;
 import de.gematik.isik.mockserver.helper.OperationOutcomeUtils;
 import de.gematik.isik.mockserver.helper.ResponseUtils;
 import de.gematik.isik.mockserver.helper.ReusableRequestWrapper;
@@ -40,6 +41,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Parameters;
 import org.springframework.stereotype.Component;
@@ -101,5 +103,25 @@ public class AppointmentPatchInterceptor {
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * Frees referenced Slots when an Appointment's status transitions to 'cancelled'. This hook
+	 * covers both PATCH-based cancellation and rescheduling-based cancellation via $book.
+	 */
+	@Hook(Pointcut.STORAGE_PRECOMMIT_RESOURCE_UPDATED)
+	public void resourceUpdated(
+			IBaseResource theOldResource, IBaseResource theNewResource, RequestDetails theRequestDetails) {
+		if (!(theNewResource instanceof Appointment newAppointment)
+				|| !(theOldResource instanceof Appointment oldAppointment)) {
+			return;
+		}
+		if (newAppointment.getStatus() == Appointment.AppointmentStatus.CANCELLED
+				&& oldAppointment.getStatus() != Appointment.AppointmentStatus.CANCELLED) {
+			log.info(
+					"Appointment {} cancelled, freeing referenced slots",
+					oldAppointment.getIdElement().toUnqualifiedVersionless().getValue());
+			appointmentPatchHandler.freeSlots(oldAppointment, new SystemRequestDetails(theRequestDetails));
+		}
 	}
 }

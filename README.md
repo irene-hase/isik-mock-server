@@ -33,11 +33,12 @@
 
 ## About The Project
 
-This is a simple implementation of ISiK Level 3 and 5 specifications to be used as a simulation for testing purposes. It
+This is a simple implementation of ISiK Level 5 specifications to be used as a simulation for testing purposes. It
 is based on the [HAPI FHIR Starter Project](https://github.com/hapifhir/hapi-fhir-jpaserver-starter).
 
 > [!WARNING]
-> ISiK Level 3 support in this Mock Server Implementation has reached the End-of-Life and will be removed with the next major release.
+> ISiK Level 3 support in this Mock Server Implementation has reached the End-of-Life and will be removed with the next
+> major release.
 > If you want to test further against this Mock Server for ISiK Level 3, please use the latest 3.4.5 Version.
 
 ### Release Notes
@@ -121,23 +122,36 @@ client should still be able to process in a READ interaction using appropriate e
 
 Every FHIR resource that is being sent to the server via a `POST` or `PUT` request is being validated with
 the [gematik Referenzvalidator](https://github.com/gematik/app-referencevalidator) using
-the [ISIK-3 Plugins](https://github.com/gematik/app-referencevalidator-plugins?tab=readme-ov-file#isik3) or
 the [ISIK-5](https://github.com/gematik/app-referencevalidator-plugins/releases/tag/isik5-1.0.0) one. If a resource
 is not valid it gets rejected and a response with an OperationOutcome containing the validation errors is being sent
 back to the client. Only resources that are valid will be accepted.
+
+Additional Details:
+
+* Operations beginning with `/$..` (e.g. `$book`) are not validated with the Referenzvalidator. Validation for such
+  operations happens internally.
+* Resources without a mapped ISiK plugin are validated against the base FHIR core StructureDefinition.
+* Invalid KDL codes from the 2025 ValueSet produce warnings instead of errors, so they do not block persistence.
+* Transaction, Document, and Searchset bundles are validated only against their matching ISiK profile (e.g.,
+  `ISiKMedikationTransaction` for transaction bundles).
 
 #### Accepted Media-Types
 
 The server accepts XML and JSON. Clients can choose between XML and JSON representation, but must indicate which
 representation has been selected in the HTTP Accept and Content-Type
-headers ([cf. ISiK v3 Specification](https://simplifier.net/guide/isik-basis-v3/UebergreifendeFestlegungen-Repraesentationsformate?version=current), [cf. ISiK v5 Specification](https://simplifier.net/guide/isik-basis-stufe-5/Einfuehrung/Festlegungen/UebergreifendeFestlegungen_Repraesentationsformate?version=current)).
+headers, [cf. ISiK v5 Specification](https://simplifier.net/guide/isik-basis-stufe-5/Einfuehrung/Festlegungen/UebergreifendeFestlegungen_Repraesentationsformate?version=current)).
+The validation of Media-Types is skipped only for `Binary` resources.
+
+The server now validates the `fhirVersion` parameter in Accept/Content-Type headers and rejects anything other than
+`4.0` (returns 406).
 
 #### Booking Appointments - `Appointment/$book`
 
 The server implements the Operation for booking Appointments according to the
-official [ISiK v5 Specification](https://simplifier.net/guide/isik-terminplanung-stufe-5/Einfuehrung?version=5.1.1)
-or [ISiK v3 Specification](https://simplifier.net/guide/isik-terminplanung-v3/ImplementationGuide-markdown-Datenobjekte-Operations?version=current),
-according to the Profile of the Resources.
+official [ISiK v5 Specification](https://simplifier.net/guide/isik-terminplanung-stufe-5/Einfuehrung?version=5.1.1).
+
+The `$book` operation accepts both a bare `Appointment` and a `Parameters` resource with named parameters (
+`appt-resource`, `schedule`, `cancelled-appt-id`, `patient`, `related-person`).
 
 Plausibility checks:
 
@@ -148,8 +162,20 @@ Plausibility checks:
 * The referenced patient must not have been deleted and must not have the status active=false
 * The start and end times in the appointment must be identical to the slot start/end times or lie between them
 
-Also, the server automatically creates a busy Slot when none is provided — ensuring no overlaps and converting
-overlapping free slots — then associates it with the new appointment.
+Other implemented features:
+
+* A slot that has already been claimed by a parallel request results in a response with error code `422`, or `409` in
+  case of conflicts.
+* When `patient` or `related-person` are supplied in Parameters, the server resolves existing or creates new resources.
+* When `Appointment.start` / `.end` are not set but a Slot is referenced, values are populated from the Slot
+* After enrichment, the fully-built Appointment is validated against the ISiKTermin profile using the gematik
+  Referenzvalidator.
+* If the status of an `Appointment` is one between `proposed`/`cancelled`/`waitlist`, the presence of start/end fields
+  for these statuses is not validated
+* The server automatically creates a busy Slot when none is provided — ensuring no overlaps and converting
+  overlapping free slots — then associates it with the new appointment.
+* The Feature Flag `isik.appointment.book.pending-enabled` has been introduced: when enabled, `$book` returns status
+  `pending` (HTTP 202) instead of `booked` (HTTP 201)
 
 #### Asynchronous Booking of Appointments
 
@@ -161,8 +187,8 @@ asynchronous job the client needs to do a `GET` request with the url from the `C
 #### Updating Appointments
 
 The server implements updating Appointments according to the chapter `Aktualisierung / Absage eines Termins` from the
-official [ISiK v5 Specification](https://simplifier.net/guide/isik-terminplanung-stufe-5/Einfuehrung/Festlegungen/Operations?version=5.1.1)
-or [ISiK v3 Specification](https://simplifier.net/guide/isik-terminplanung-v3/ImplementationGuide-markdown-Datenobjekte-Operations?version=current).
+official [ISiK v5 Specification](https://simplifier.net/guide/isik-terminplanung-stufe-5/Einfuehrung/Festlegungen/Operations?version=5.1.1).
+It supports **Patch (`PATCH`)** on Appointments using a `Parameters` resource, not a direct `PUT` of the full resource.
 
 Plausibility checks:
 
@@ -171,21 +197,32 @@ Plausibility checks:
 * `Appointment.end` MUST NOT be changed
 * `Appointment.participant.actor.where(resolve() is Patient)` MUST NOT be changed
 * The referenced patient MUST NOT be deleted and MUST NOT have the status `active=false`
+* Immutable fields (`slot`, `start`, `end`, `participant.actor`) only accept `replace` operations and reject `add`/
+  `remove`
 
 #### Rescheduling Appointments
 
 The server implements rescheduling of Appointments as described in the `cancelled-appt-id` parameter in the
-official [ISiK v5 Specification](https://simplifier.net/guide/isik-terminplanung-stufe-5/Einfuehrung/Festlegungen/Operations?version=5.1.1)
-or [ISiK v3 Specification](https://simplifier.net/guide/isik-terminplanung-v3/ImplementationGuide-markdown-Datenobjekte-Operations?version=current).
+official [ISiK v5 Specification](https://simplifier.net/guide/isik-terminplanung-stufe-5/Einfuehrung/Festlegungen/Operations?version=5.1.1).
 
 * All plausibility checks from the chapter `Booking Appointments` need to be fulfilled here as well.
 * A reference to the cancelled appointment is stored in the new appointment.
 * The status of the cancelled appointment is set to `cancelled`.
+* When an appointment transitions to `cancelled` (either via `$book` rescheduling or via PATCH), all referenced Slots
+  are **automatically freed** (set back to `free`).
+
+#### DocumentReferences: Pre-Storage enrichment
+
+The server can enrich incoming `DocumentReferences` that are going to be created, including those inside transaction
+Bundles. Embedded base64 encoded attachment data is extracted into a separate `Binary` resource and the attachment URL
+is replaced with the Binary's URL.
+
+The enrichment can fail if the referenced `Patient` or `Encounter` do not exist on the server.
 
 #### DocumentReferences: Updating Documents
 
-The server adds a `relatesTo relation` to the previous document. The status of the previous document is set to
-`superseded` by the server.
+When a new DocumentReference includes a `relatesTo` entry with code `replaces`, the server automatically sets the status
+of the referenced (previous) document to `superseded`.
 
 #### DocumentReferences: KDL Code Mapping
 
@@ -198,24 +235,12 @@ cross-institutional document exchange via `IHE XDS` or `MHD` or for the transmis
 #### DocumentReferences: Generating Metadata - `DocumentReference/$generate-metadata`
 
 The server supports the Operation of generating of metadata as described in the
-official [ISiK v5 Specification](https://simplifier.net/guide/isik-dokumentenaustausch-stufe-5/Einfuehrung/Festlegungen/ErzeugenVonMetadaten?version=5.1.1)
-or [ISiK v3 Specification](https://simplifier.net/guide/isik-dokumentenaustausch-v3/ImplementationGuide-markdown-AkteureUndInteraktionen-ErzeugenVonMetadaten?version=current).
-
-> **Warning**
->
-> Although `meta.profile` is not actually mandatory for ISIK v3 FHIR resources, the specification of the profile
-`“https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKBerichtBundle”` in `meta.profile` is currently
-> mandatory for the correct creation of metadata. It is also mandatory to specify `meta.profile` in such a bundle for
-> the
-> composition: `"https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKBerichtSubSysteme"`.
->
-> For ISiK v5, the `meta.profile` must be explicitly set, for every FHIR Resource.
+official [ISiK v5 Specification](https://simplifier.net/guide/isik-dokumentenaustausch-stufe-5/Einfuehrung/Festlegungen/ErzeugenVonMetadaten?version=5.1.1).
 
 #### DocumentReferences: Updating Metadata - `DocumentReference/$update-metadata`
 
 The server supports the Operation of generating of metadata as described in the
-official [ISiK v5 Specification](https://simplifier.net/guide/isik-dokumentenaustausch-stufe-5/Einfuehrung/Festlegungen/Update?version=5.1.1)
-or [ISIK-3 specification](https://simplifier.net/guide/isik-dokumentenaustausch-v3/ImplementationGuide-markdown-AkteureUndInteraktionen-Update?version=current).
+official [ISiK v5 Specification](https://simplifier.net/guide/isik-dokumentenaustausch-stufe-5/Einfuehrung/Festlegungen/Update?version=5.1.1).
 
 #### DocumentReferences: Resource Validation on Server Start
 
@@ -228,8 +253,23 @@ enable the flag by adding the following VM option to your runtime configuration:
 -Dexample-fhir-resources.validation.enabled=true
 ```
 
-- **Enabled:** Average startup time on local dev machine ~58 s
-- **Disabled:** Average startup time on local dev machine ~19 s
+when the validation is enabled, the startup time might vary significantly based on the number of example resources and
+the performance of the machine, but it can take up to several minutes.
+
+#### Document Bundles
+
+The server handles incoming `Bundle` Resources with `Bundle.type = DOCUMENT`, validating the following requirements:
+
+* The `Composition` has a narrative (`text`)
+* The `Patient` (subject) exists on the server (searched by identifier)
+* The `Encounter` exists on the server (searched by identifier)
+
+#### Transaction Bundles
+
+The server supports Requests with transaction `Bundles`, accepting `Bundle` Resources with `Bundle.type = TRANSACTION`:
+it validates incoming transaction bundles against the `ISiKMedikationTransaction` profile and for outgoing
+transaction-response bundles, the server enriches them with `Bundle.meta.profile` set to
+`ISiKMedikationTransactionResponse` and derives `Bundle.entry.fullUrl` from `entry.response.location`.
 
 ## Contributing
 

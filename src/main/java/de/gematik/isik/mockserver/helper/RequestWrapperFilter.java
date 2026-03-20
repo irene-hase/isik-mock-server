@@ -42,10 +42,12 @@ public class RequestWrapperFilter implements Filter {
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
 		if (request instanceof HttpServletRequest httpServletRequest) {
-			HttpServletRequest wrappedRequest = new ReusableRequestWrapper(httpServletRequest);
-			chain.doFilter(wrappedRequest, response);
-		} else {
-			chain.doFilter(request, response);
+			String method = httpServletRequest.getMethod();
+			if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method) || "PATCH".equalsIgnoreCase(method)) {
+				chain.doFilter(new ReusableRequestWrapper(httpServletRequest), response);
+				return;
+			}
 		}
+		chain.doFilter(request, response);
 	}
 }

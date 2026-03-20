@@ -78,6 +78,11 @@ public class IsikBerichtBundleToISiKDokumentenMetadatenMapper {
 		documentReference.setDocStatus(DocumentReference.ReferredDocumentStatus.fromCode(
 				composition.getStatus().toCode()));
 
+		// Composition.date → DocumentReference.date (required by ISiK Dokumentenaustausch spec)
+		if (composition.hasDate()) {
+			documentReference.setDate(composition.getDate());
+		}
+
 		typeMapper.mapKdlAndXdsCodings(composition, documentReference, operationOutcome);
 
 		Reference patientReference = subjectMapper.mapSubject(composition, operationOutcome, requestDetails);

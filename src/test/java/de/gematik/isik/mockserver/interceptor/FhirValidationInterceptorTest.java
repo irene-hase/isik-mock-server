@@ -69,6 +69,7 @@ class FhirValidationInterceptorTest {
 		pluginMappingLoader.loadData();
 
 		PluginMappingResolver pluginMappingResolver = new PluginMappingResolver(pluginMappingLoader);
+		pluginMappingResolver.buildReverseIndex();
 		PluginLoader pluginLoader = new PluginLoader("plugins", true);
 		pluginLoader.init();
 

@@ -1,0 +1,28 @@
+{
+  "resourceType": "Coverage",
+  "id": "SelfPayer-Example",
+  "meta": {
+    "profile": [
+      "https://gematik.de/fhir/isik/StructureDefinition/ISiKVersicherungsverhaeltnisSelbstzahler"
+    ]
+  },
+  "status": "active",
+  "type": {
+    "coding": [
+      {
+        "system": "http://fhir.de/CodeSystem/versicherungsart-de-basis",
+        "code": "SEL"
+      }
+    ]
+  },
+  "beneficiary": {
+    "reference": "Patient/Mustermann"
+  },
+  "payor": [
+    {
+      "reference": "Patient/Mustermann",
+      "display": "Max Mustermann (Selbstzahler)"
+    }
+  ]
+}
+

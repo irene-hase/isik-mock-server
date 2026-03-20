@@ -8,7 +8,7 @@
         "id": "Appointment-Read-Example",
         "meta": {
           "profile": [
-            "https://gematik.de/fhir/isik/v3/Terminplanung/StructureDefinition/ISiKTermin"
+            "https://gematik.de/fhir/isik/StructureDefinition/ISiKTermin"
           ],
           "tag": [
             {
@@ -19,7 +19,7 @@
         },
         "extension": [
           {
-            "url": "https://gematik.de/fhir/isik/v3/Terminplanung/StructureDefinition/ISiKNachrichtExtension",
+            "url": "https://gematik.de/fhir/isik/StructureDefinition/ISiKNachrichtExtension",
             "valueReference": {
               "reference": "Communication/Message-Example"
             }
@@ -55,7 +55,7 @@
         "_priority": {
           "extension": [
             {
-              "url": "https://gematik.de/fhir/isik/v3/Terminplanung/StructureDefinition/ISiKTerminPriorityExtension",
+              "url": "https://gematik.de/fhir/isik/StructureDefinition/ISiKTerminPriorityExtension",
               "valueCodeableConcept": {
                 "coding": [
                   {

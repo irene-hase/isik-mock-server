@@ -40,9 +40,12 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Optional;
 
-import static de.gematik.isik.mockserver.provider.DocumentReferenceStufe3ResourceProviderHelper.KDL_TYPE_CODE_SYSTEM;
-import static de.gematik.isik.mockserver.provider.DocumentReferenceStufe3ResourceProviderHelper.XDS_CLASS_CODE_SYSTEM;
-import static de.gematik.isik.mockserver.provider.DocumentReferenceStufe3ResourceProviderHelper.XDS_TYPE_CODE_SYSTEM;
+import static de.gematik.isik.mockserver.provider.DocumentReferenceResourceProviderHelper.KDL_TYPE_CODE_SYSTEM;
+import static de.gematik.isik.mockserver.provider.DocumentReferenceResourceProviderHelper.UNKNOWN_XDS_CLASS_CODE;
+import static de.gematik.isik.mockserver.provider.DocumentReferenceResourceProviderHelper.UNKNOWN_XDS_CLASS_CODE_DISPLAY;
+import static de.gematik.isik.mockserver.provider.DocumentReferenceResourceProviderHelper.UNKNOWN_XDS_CLASS_CODE_SYSTEM;
+import static de.gematik.isik.mockserver.provider.DocumentReferenceResourceProviderHelper.XDS_CLASS_CODE_SYSTEM;
+import static de.gematik.isik.mockserver.provider.DocumentReferenceResourceProviderHelper.XDS_TYPE_CODE_SYSTEM;
 
 @Component
 @Slf4j
@@ -54,9 +57,12 @@ public class IsikBerichtSubSystemeTypeMapper {
 
 	public void mapKdlAndXdsCodings(
 			Composition composition, DocumentReference documentReference, OperationOutcome operationOutcome) {
-		//	1. Composition.type.coding[KDL] -> DocumentReference.type.coding:KDL - Composition = OPTIONAL
-		// vs. DocumentReference = REQUIRED -> Fehler wenn KDL bei Composition fehlt!
-		Optional<Coding> kdlCodingOptional = composition.getType().getCoding().stream()
+
+		final var typeCoding = composition.getType().getCoding();
+
+		//	Composition.type.coding[KDL] -> DocumentReference.type.coding:KDL - Composition = OPTIONAL
+		// vs. DocumentReference = REQUIRED -> Error when KDL is missing
+		Optional<Coding> kdlCodingOptional = typeCoding.stream()
 				.filter(coding -> KDL_TYPE_CODE_SYSTEM.equals(coding.getSystem()))
 				.findFirst();
 
@@ -72,29 +78,32 @@ public class IsikBerichtSubSystemeTypeMapper {
 			documentReference.setType(new CodeableConcept(kdlCodingOptional.get()));
 		}
 
-		//	2. Composition.type.coding[XDS] -> DocumentReference.type.coding:XDS - Composition = OPTIONAL
-		// vs. DocumentReference = OPTIONAL
-		Optional<Coding> xdsTypeCodingOptional = composition.getType().getCoding().stream()
+		//	Composition.type.coding[XDS] -> DocumentReference.type.coding:XDS - Composition = OPTIONAL
+		// vs. DocumentReference = Optional, but server must set it explicitly.
+		// If not found, then use UNK with system "http://terminology.hl7.org/CodeSystem/v3-NullFlavor"
+		Optional<Coding> xdsTypeCodingOptional = typeCoding.stream()
 				.filter(coding -> XDS_TYPE_CODE_SYSTEM.equals(coding.getSystem()))
 				.findFirst();
 		if (xdsTypeCodingOptional.isEmpty()) {
 			ConceptMap conceptMap = kdlCodeMapper.getTypeCodeConceptMap();
 			Coding targetCoding = kdlCodeMapper.findTargetCoding(
 					conceptMap, kdlCodingOptional.get().getCode(), KDL_TYPE_CODE_SYSTEM, XDS_TYPE_CODE_SYSTEM);
-			if (targetCoding != null) {
-				documentReference.getType().addCoding(targetCoding);
-			} else {
-				log.info("No mapping found for KDL code: "
-						+ kdlCodingOptional.get().getCode()
-						+ " to "
-						+ XDS_TYPE_CODE_SYSTEM);
+			if (targetCoding == null) {
+				targetCoding = new Coding(
+						UNKNOWN_XDS_CLASS_CODE_SYSTEM, UNKNOWN_XDS_CLASS_CODE, UNKNOWN_XDS_CLASS_CODE_DISPLAY);
+				log.info(
+						"No mapping found for KDL code {}, setting XDS to {} - {}",
+						kdlCodingOptional.get().getCode(),
+						UNKNOWN_XDS_CLASS_CODE,
+						UNKNOWN_XDS_CLASS_CODE_SYSTEM);
 			}
+			documentReference.getType().addCoding(targetCoding);
 		} else {
 			documentReference.getType().addCoding(xdsTypeCodingOptional.get());
 		}
 
 		//	3. Composition.category.coding[XDS] - > DocumentReference.category.coding:XDS - Composition =
-		// OPTIONAL vs. DocumentReference = OPTIONAL
+		// OPTIONAL vs. DocumentReference = OPTIONAL, should be extended from server
 		Optional<Coding> xdsClassCodingOptional = composition.getCategory().stream()
 				.flatMap(category -> category.getCoding().stream())
 				.filter(coding -> XDS_CLASS_CODE_SYSTEM.equals(coding.getSystem()))
@@ -106,10 +115,10 @@ public class IsikBerichtSubSystemeTypeMapper {
 			if (targetCoding != null) {
 				documentReference.setCategory(List.of(new CodeableConcept(targetCoding)));
 			} else {
-				log.info("No mapping found for KDL code: "
-						+ kdlCodingOptional.get().getCode()
-						+ " to "
-						+ XDS_CLASS_CODE_SYSTEM);
+				log.info(
+						"No mapping found for KDL code: {} to {}",
+						kdlCodingOptional.get().getCode(),
+						XDS_CLASS_CODE_SYSTEM);
 			}
 		} else {
 			documentReference.setCategory(List.of(new CodeableConcept(xdsClassCodingOptional.get())));

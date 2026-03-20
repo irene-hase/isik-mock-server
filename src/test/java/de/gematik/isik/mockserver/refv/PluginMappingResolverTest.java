@@ -29,10 +29,10 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -41,7 +41,6 @@ import static org.mockito.Mockito.when;
 
 class PluginMappingResolverTest {
 
-	@InjectMocks
 	private PluginMappingResolver pluginMappingResolver;
 
 	@Mock
@@ -70,6 +69,9 @@ class PluginMappingResolverTest {
 		when(pluginMappingLoader.getResourceTypeToPluginIdMap()).thenReturn(mockResourceTypeToPluginIdMap);
 		when(pluginMappingLoader.getResourceTypeToProfileUrlMap()).thenReturn(mockResourceTypeToProfileUrlMap);
 		when(pluginMappingLoader.getProfileUrlToPluginIdMap()).thenReturn(mockProfileUrlToPluginIdMap);
+
+		pluginMappingResolver = new PluginMappingResolver(pluginMappingLoader);
+		pluginMappingResolver.buildReverseIndex();
 	}
 
 	@AfterEach
@@ -114,5 +116,67 @@ class PluginMappingResolverTest {
 
 		String pluginIdForUnknownProfileUrl = pluginMappingResolver.getPluginIdFromProfile("UnknownProfileUrl");
 		assertThat(pluginIdForUnknownProfileUrl).isNull();
+	}
+
+	@Test
+	void testGetPluginIdsFromResourceType_NullKey() {
+		List<String> result = pluginMappingResolver.getPluginIdsFromResourceType(null);
+		assertThat(result).isEmpty();
+	}
+
+	@Test
+	void testGetProfileUrlsFromResourceType_NullKey() {
+		List<String> result = pluginMappingResolver.getProfileUrlsFromResourceType(null);
+		assertThat(result).isEmpty();
+	}
+
+	@Test
+	void testGetPluginIdFromProfile_NullKey() {
+		String result = pluginMappingResolver.getPluginIdFromProfile(null);
+		assertThat(result).isNull();
+	}
+
+	@Test
+	void testGetPluginIdsFromResourceType_EmptyKey() {
+		List<String> result = pluginMappingResolver.getPluginIdsFromResourceType("");
+		assertThat(result).isEmpty();
+	}
+
+	@Test
+	void testBuildReverseIndex_WithEmptyMap() {
+		when(pluginMappingLoader.getProfileUrlToPluginIdMap()).thenReturn(Collections.emptyMap());
+
+		PluginMappingResolver resolver = new PluginMappingResolver(pluginMappingLoader);
+		resolver.buildReverseIndex();
+
+		String result = resolver.getPluginIdFromProfile("anyProfile");
+		assertThat(result).isNull();
+	}
+
+	@Test
+	void testBuildReverseIndex_WithNullMap() {
+		when(pluginMappingLoader.getProfileUrlToPluginIdMap()).thenReturn(null);
+
+		PluginMappingResolver resolver = new PluginMappingResolver(pluginMappingLoader);
+		resolver.buildReverseIndex();
+
+		String result = resolver.getPluginIdFromProfile("anyProfile");
+		assertThat(result).isNull();
+	}
+
+	@Test
+	void testReverseIndexHandlesMultipleProfilesPerPlugin() {
+		Map<String, List<String>> multiMap = Map.of(
+			"PluginA", List.of("Profile1", "Profile2", "Profile3")
+		);
+		when(pluginMappingLoader.getProfileUrlToPluginIdMap()).thenReturn(multiMap);
+
+		PluginMappingResolver resolver = new PluginMappingResolver(pluginMappingLoader);
+		resolver.buildReverseIndex();
+
+		assertThat(resolver.getPluginIdFromProfile("Profile1")).isEqualTo("PluginA");
+		assertThat(resolver.getPluginIdFromProfile("Profile2")).isEqualTo("PluginA");
+		assertThat(resolver.getPluginIdFromProfile("Profile3")).isEqualTo("PluginA");
+		assertThat(resolver.getPluginIdFromProfile("Profile4")).isNull();
 	}
 }

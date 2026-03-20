@@ -32,7 +32,6 @@ import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -52,8 +51,12 @@ class AsyncAppointmentBookJobControllerTest {
 
 	private final FhirContext fhirContext = FhirContext.forR4();
 
-	@InjectMocks
 	private AsyncAppointmentBookJobController controller;
+
+	@org.junit.jupiter.api.BeforeEach
+	void setUp() {
+		controller = new AsyncAppointmentBookJobController(asyncAppointmentBookJobService, fhirContext);
+	}
 
 	@Test
 	void shouldReturnNotFoundWhenJobDoesNotExist() {
@@ -84,6 +87,7 @@ class AsyncAppointmentBookJobControllerTest {
 		String jobId = "successfulJob";
 		AppointmentHandlerReturnObject result = mock(AppointmentHandlerReturnObject.class);
 		when(result.isOperationSuccessful()).thenReturn(true);
+		when(result.getHttpStatusCode()).thenReturn(201);
 		Appointment appointment = new Appointment();
 		appointment.setId("1");
 		when(result.getAppointment()).thenReturn(appointment);
@@ -103,6 +107,7 @@ class AsyncAppointmentBookJobControllerTest {
 		String jobId = "failedJob";
 		AppointmentHandlerReturnObject result = mock(AppointmentHandlerReturnObject.class);
 		when(result.isOperationSuccessful()).thenReturn(false);
+		when(result.getHttpStatusCode()).thenReturn(422);
 		OperationOutcome outcome = new OperationOutcome();
 		outcome.addIssue().setDiagnostics("Some error occurred");
 		when(result.getOperationOutcome()).thenReturn(outcome);
@@ -113,7 +118,7 @@ class AsyncAppointmentBookJobControllerTest {
 		ResponseEntity<String> response = controller.getJobResult(jobId);
 
 		String expectedJson = fhirContext.newJsonParser().setPrettyPrint(true).encodeResourceToString(outcome);
-		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
 		assertThat(response.getBody()).isEqualTo(expectedJson);
 	}
 
@@ -130,9 +135,9 @@ class AsyncAppointmentBookJobControllerTest {
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
 		assertThat(response.getBody())
-			.contains("Internal error while processing the asynchronous job")
+			.contains("An internal error occurred while processing the asynchronous job")
 			.contains(jobId)
-			.contains("Test exception");
+			.doesNotContain("Test exception");
 	}
 
 	@Test

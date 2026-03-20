@@ -202,6 +202,7 @@ hapi:
     #   - Patient
     #   - Observation
     # allowed_bundle_types: COLLECTION,DOCUMENT,MESSAGE,TRANSACTION,TRANSACTIONRESPONSE,BATCH,BATCHRESPONSE,HISTORY,SEARCHSET
+    allowed_bundle_types: COLLECTION,DOCUMENT,MESSAGE,TRANSACTION,TRANSACTIONRESPONSE,SEARCHSET
 
     # -------------------------------------------------------------------------------
     # C. Clinical Reasoning / CQL / Care Gaps / CDS Hooks
@@ -383,8 +384,8 @@ hapi:
     # comma-separated package names, will be @ComponentScan'ed by Spring to allow for creating custom Spring beans
 
     custom-bean-packages: "de.gematik.isik.mockserver"
-    custom-interceptor-classes: "de.gematik.isik.mockserver.interceptor.DocumentPOSTInterceptor,de.gematik.isik.mockserver.interceptor.FhirValidationInterceptor,de.gematik.isik.mockserver.interceptor.AppointmentPatchInterceptor,de.gematik.isik.mockserver.interceptor.DocumentReferencePOSTInterceptor,de.gematik.isik.mockserver.interceptor.MediaTypeInterceptor"
-    custom-provider-classes: "de.gematik.isik.mockserver.provider.EncounterSearchByIdentifierModifierProvider,de.gematik.isik.mockserver.provider.DocumentReferenceStufe3ResourceProvider,de.gematik.isik.mockserver.provider.ValueSetSearchByContextTypeValueProvider,de.gematik.isik.mockserver.operation.AppointmentBookOperation,de.gematik.isik.mockserver.operation.DocumentReferenceGenerateMetadataOperation,de.gematik.isik.mockserver.operation.DocumentReferenceUpdateMetadataOperation"
+    custom-interceptor-classes: "de.gematik.isik.mockserver.interceptor.DocumentPOSTInterceptor,de.gematik.isik.mockserver.interceptor.FhirValidationInterceptor,de.gematik.isik.mockserver.interceptor.AppointmentPatchInterceptor,de.gematik.isik.mockserver.interceptor.DocumentReferencePreStorageInterceptor,de.gematik.isik.mockserver.interceptor.MediaTypeInterceptor,de.gematik.isik.mockserver.interceptor.TransactionResponseProfileInterceptor"
+    custom-provider-classes: "de.gematik.isik.mockserver.provider.EncounterSearchByIdentifierModifierProvider,de.gematik.isik.mockserver.provider.DocumentReferenceResourceProvider,de.gematik.isik.mockserver.provider.ValueSetSearchByContextTypeValueProvider,de.gematik.isik.mockserver.operation.AppointmentBookOperation,de.gematik.isik.mockserver.operation.DocumentReferenceGenerateMetadataOperation,de.gematik.isik.mockserver.operation.DocumentReferenceUpdateMetadataOperation"
     # store_meta_source_information: NONE
     # bundle_batch_pool_size: 10
     # bundle_batch_pool_max_size: 50
@@ -456,7 +457,7 @@ hapi:
     # R. LastN (analytics)
     # -------------------------------------------------------------------------------
     # lastn_enabled: true
-    
+
     # -------------------------------------------------------------------------------
     # S. Testers (webui)
     # -------------------------------------------------------------------------------
@@ -474,6 +475,13 @@ plugins:
   resourcetype2pluginid: resourcetype2pluginid.json
   resourcetype2profileurl: resourcetype2profileurl.json
   profileurl2pluginid: profileurl2pluginid.json
+
+# ISiK Appointment booking configuration
+isik:
+  appointment:
+    book:
+      # When true, the $book operation returns status 'pending' (HTTP 202) instead of 'booked' (HTTP 201)
+      pending-enabled: false
 
 example-fhir-resources:
   directory: example-resources

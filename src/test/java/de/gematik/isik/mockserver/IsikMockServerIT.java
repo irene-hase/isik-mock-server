@@ -26,13 +26,16 @@ package de.gematik.isik.mockserver;
  */
 
 import ca.uhn.fhir.context.FhirContext;
+import ca.uhn.fhir.jpa.api.dao.DaoRegistry;
 import ca.uhn.fhir.jpa.starter.Application;
 import ca.uhn.fhir.parser.IParser;
 import ca.uhn.fhir.rest.api.Constants;
 import ca.uhn.fhir.rest.api.EncodingEnum;
+import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.client.api.ServerValidationModeEnum;
 import ca.uhn.fhir.rest.client.interceptor.BearerTokenAuthInterceptor;
+import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
@@ -43,11 +46,13 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DocumentReference;
 import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Enumerations;
+import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 import org.hl7.fhir.r4.model.Parameters;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.Slot;
 import org.hl7.fhir.r4.model.ValueSet;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeAll;
@@ -70,8 +75,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static de.gematik.isik.mockserver.helper.ResourceLoadingHelper.loadResourceAsString;
-import static de.gematik.isik.mockserver.provider.DocumentReferenceStufe3ResourceProviderHelper.XDS_CLASS_CODE_SYSTEM;
-import static de.gematik.isik.mockserver.provider.DocumentReferenceStufe3ResourceProviderHelper.XDS_TYPE_CODE_SYSTEM;
+import static de.gematik.isik.mockserver.provider.DocumentReferenceResourceProviderHelper.XDS_CLASS_CODE_SYSTEM;
+import static de.gematik.isik.mockserver.provider.DocumentReferenceResourceProviderHelper.XDS_TYPE_CODE_SYSTEM;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -95,6 +100,9 @@ class IsikMockServerIT {
     @Autowired
     private TestRestTemplate restTemplate;
 
+    @Autowired
+    private DaoRegistry daoRegistry;
+
     @BeforeAll
     static void beforeAll() {
         ourCtx = FhirContext.forR4();
@@ -106,6 +114,20 @@ class IsikMockServerIT {
     void beforeEach() {
         ourClient = ourCtx.newRestfulGenericClient(getServerHostAndPort());
         ourClient.registerInterceptor(new BearerTokenAuthInterceptor("bearerToken"));
+        resetSlotStatus();
+    }
+
+    private void resetSlotStatus() {
+        try {
+            Slot freeBlock = daoRegistry.getResourceDao(Slot.class)
+                    .read(new IdType("Slot/Free-Block"), (RequestDetails) null);
+            if (freeBlock.getStatus() != Slot.SlotStatus.FREE) {
+                freeBlock.setStatus(Slot.SlotStatus.FREE);
+                daoRegistry.getResourceDao(Slot.class).update(freeBlock, (RequestDetails) null);
+            }
+        } catch (ResourceNotFoundException e) {
+            // Slot not loaded yet (e.g. first test); will be created from example resources
+        }
     }
 
     @NotNull
@@ -157,7 +179,7 @@ class IsikMockServerIT {
                     ourCtx.newJsonParser().encodeResourceToWriter(termin, new OutputStreamWriter(request.getBody()));
                     request.getHeaders().add("Content-Type", "application/fhir+json");
                 }, response1 -> {
-                    assertEquals(400, response1.getStatusCode().value());
+                    assertEquals(422, response1.getStatusCode().value());
                     return new String(response1.getBody().readAllBytes(), StandardCharsets.UTF_8);
                 });
 

@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PluginMappingLoaderTest {
 
@@ -53,7 +53,7 @@ class PluginMappingLoaderTest {
 		"ResourceTypeA", List.of("ProfileUrl1", "ProfileUrl2")
 	);
 	private final Map<String, List<String>> mockProfileUrlToPluginIdMap = Map.of(
-		"isik3-basismodul", List.of("https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKPatient")
+		"isik5", List.of("https://gematik.de/fhir/isik/StructureDefinition/ISiKPatient")
 	);
 
 	@BeforeEach
@@ -65,7 +65,7 @@ class PluginMappingLoaderTest {
 		String resourceTypeToProfileUrlPath = "mockResourceTypeToProfileUrl.json";
 		String profileUrlToPluginIdPath = "mockProfileUrlToPluginId.json";
 
-		pluginMappingLoader = new PluginMappingLoader(resourceTypeToPluginIdPath,resourceTypeToProfileUrlPath, profileUrlToPluginIdPath, new ObjectMapper());
+		pluginMappingLoader = new PluginMappingLoader(resourceTypeToPluginIdPath, resourceTypeToProfileUrlPath, profileUrlToPluginIdPath, new ObjectMapper());
 
 	}
 
@@ -85,5 +85,42 @@ class PluginMappingLoaderTest {
 		assertThat(pluginMappingLoader.getResourceTypeToPluginIdMap()).isEqualTo(mockResourceTypeToPluginIdMap);
 		assertThat(pluginMappingLoader.getResourceTypeToProfileUrlMap()).isEqualTo(mockResourceTypeToProfileUrlMap);
 		assertThat(pluginMappingLoader.getProfileUrlToPluginIdMap()).isEqualTo(mockProfileUrlToPluginIdMap);
+	}
+
+	@Test
+	void testLoadData_WithNonExistentFile_ShouldThrow() {
+		PluginMappingLoader badLoader = new PluginMappingLoader(
+			"nonexistent.json", "mockResourceTypeToProfileUrl.json", "mockProfileUrlToPluginId.json", new ObjectMapper());
+
+		assertThatThrownBy(badLoader::loadData).isInstanceOf(Exception.class);
+	}
+
+	@Test
+	@SneakyThrows
+	void testLoadData_CalledTwice_ShouldReloadData() {
+		pluginMappingLoader.loadData();
+		Map<String, List<String>> firstLoad = pluginMappingLoader.getResourceTypeToPluginIdMap();
+
+		pluginMappingLoader.loadData();
+		Map<String, List<String>> secondLoad = pluginMappingLoader.getResourceTypeToPluginIdMap();
+
+		assertThat(firstLoad).isEqualTo(secondLoad);
+	}
+
+	@Test
+	@SneakyThrows
+	void testLoadData_MapsAreNotNull() {
+		pluginMappingLoader.loadData();
+
+		assertThat(pluginMappingLoader.getResourceTypeToPluginIdMap()).isNotNull();
+		assertThat(pluginMappingLoader.getResourceTypeToProfileUrlMap()).isNotNull();
+		assertThat(pluginMappingLoader.getProfileUrlToPluginIdMap()).isNotNull();
+	}
+
+	@Test
+	void testMapsAreNullBeforeLoadData() {
+		assertThat(pluginMappingLoader.getResourceTypeToPluginIdMap()).isNull();
+		assertThat(pluginMappingLoader.getResourceTypeToProfileUrlMap()).isNull();
+		assertThat(pluginMappingLoader.getProfileUrlToPluginIdMap()).isNull();
 	}
 }

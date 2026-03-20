@@ -68,9 +68,9 @@ public class DocumentReferenceGenerateMetadataOperation implements IResourceProv
 	private IsikBerichtBundleToISiKDokumentenMetadatenMapper bundleToISiKDokumentenMetadatenMapper;
 
 	private static final String ISIK_BERICHT_BUNDLE_PROFILE =
-			"https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKBerichtBundle";
+			"https://gematik.de/fhir/isik/StructureDefinition/ISiKBerichtBundle";
 	private static final String ISIK_BERICHT_SUBSYSTEME_PROFILE =
-			"https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKBerichtSubSysteme";
+			"https://gematik.de/fhir/isik/StructureDefinition/ISiKBerichtSubSysteme";
 
 	@Override
 	public Class<? extends IBaseResource> getResourceType() {

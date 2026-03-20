@@ -9,7 +9,7 @@
       }
     ],
     "profile": [
-      "https://gematik.de/fhir/isik/v3/Dokumentenaustausch/StructureDefinition/ISiKDokumentenMetadaten"
+      "https://gematik.de/fhir/isik/StructureDefinition/ISiKDokumentenMetadaten"
     ]
   },
   "type": {
@@ -18,14 +18,43 @@
         "system": "http://dvmd.de/fhir/CodeSystem/kdl",
         "code": "PT130102",
         "display": "Molekularpathologiebefund"
+      },
+      {
+        "system": "http://ihe-d.de/CodeSystems/IHEXDStypeCode",
+        "code": "BEFE",
+        "display": "Ergebnisse Diagnostik"
       }
     ]
   },
+  "identifier": [
+    {
+      "system": "urn:ietf:rfc:3986",
+      "value": "urn:uuid:bec24812-0c60-4d6c-8de0-26f62e760adc"
+    }
+  ],
   "masterIdentifier": {
     "system": "urn:ietf:rfc:3986",
     "value": "urn:oid:1.2.840.113556.1.8000.2554.58783.21864.3474.19410.44358.58254.41281.46340"
   },
   "status": "current",
+  "docStatus": "final",
+  "category": [
+    {
+      "coding": [
+        {
+          "system": "http://ihe-d.de/CodeSystems/IHEXDSclassCode",
+          "code": "BEF",
+          "display": "Befund"
+        }
+      ]
+    }
+  ],
+  "date": "2021-12-31T23:50:50-05:00",
+  "author": [
+    {
+      "display": "Dr. med. Musterarzt"
+    }
+  ],
   "description": "Molekularpathologiebefund vom 31.12.21",
   "subject": {
     "reference": "Patient/Mustermann"

@@ -9,12 +9,12 @@
         }
       ],
       "profile": [
-        "https://gematik.de/fhir/isik/v3/Terminplanung/StructureDefinition/ISiKTermin"
+        "https://gematik.de/fhir/isik/StructureDefinition/ISiKTermin"
       ]
     },
     "extension": [
       {
-        "url": "https://gematik.de/fhir/isik/v3/Terminplanung/StructureDefinition/ISiKNachrichtExtension",
+        "url": "https://gematik.de/fhir/isik/StructureDefinition/ISiKNachrichtExtension",
         "valueReference": {
           "reference": "Communication/Message-Example"
         }
@@ -26,7 +26,7 @@
         }
       }
     ],
-    "status": "cancelled",
+    "status": "booked",
     "start": "2022-01-01T13:00:00.000+01:00",
     "slot": [
       {
@@ -75,7 +75,7 @@
     "_priority": {
       "extension": [
         {
-          "url": "https://gematik.de/fhir/isik/v3/Terminplanung/StructureDefinition/ISiKTerminPriorityExtension",
+          "url": "https://gematik.de/fhir/isik/StructureDefinition/ISiKTerminPriorityExtension",
           "valueCodeableConcept": {
             "coding": [
               {

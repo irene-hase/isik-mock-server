@@ -35,12 +35,11 @@ public class ValidationResultFilter {
 
 	public ValidationResult filter(ValidationResult result) {
 		log.info("Filtering validation result...");
-		result.getValidationMessages()
-				.removeIf(message -> "Extension_EXT_Version_Invalid".equals(message.getMessageId())
-						&& message.getMessage()
-								.contains(
-										"http://hl7.org/fhir/5.0/StructureDefinition/extension-Appointment.replaces"));
-
-		return new ValidationResult(result.getValidationMessages());
+		final var filteredList = result.getValidationMessages().stream()
+				.filter(message -> !"Extension_EXT_Version_Invalid".equals(message.getMessageId())
+						&& !message.getMessage()
+								.contains("http://hl7.org/fhir/5.0/StructureDefinition/extension-Appointment.replaces"))
+				.toList();
+		return new ValidationResult(filteredList);
 	}
 }

@@ -15,9 +15,10 @@ services:
       hapi-fhir-postgres:
         condition: service_healthy
   hapi-fhir-postgres:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     container_name: hapi-fhir-postgres
-    restart: always
+    restart: on-failure
+    shm_size: 128mb
     environment:
       POSTGRES_DB: "hapi"
       POSTGRES_USER: "admin"

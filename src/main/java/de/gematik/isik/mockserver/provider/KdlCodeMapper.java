@@ -30,6 +30,7 @@ import ca.uhn.fhir.parser.IParser;
 import de.gematik.isik.mockserver.helper.ResourceLoadingHelper;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.ConceptMap;
@@ -38,7 +39,10 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @Getter
+@RequiredArgsConstructor
 public class KdlCodeMapper {
+
+	private final FhirContext ctx;
 
 	private ConceptMap classCodeConceptMap;
 	private ConceptMap typeCodeConceptMap;
@@ -47,7 +51,7 @@ public class KdlCodeMapper {
 
 	@PostConstruct
 	public void init() {
-		IParser parser = FhirContext.forR4().newJsonParser();
+		IParser parser = ctx.newJsonParser();
 
 		String kdlClassCodeMapAsString = ResourceLoadingHelper.loadResourceAsString(KDL_CLASSCODE_MAP_FILENAME);
 		classCodeConceptMap = parser.parseResource(ConceptMap.class, kdlClassCodeMapAsString);

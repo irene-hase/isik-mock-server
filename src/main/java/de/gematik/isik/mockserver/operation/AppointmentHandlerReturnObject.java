@@ -36,4 +36,21 @@ public class AppointmentHandlerReturnObject {
 	private Appointment appointment;
 	private boolean operationSuccessful;
 	private OperationOutcome operationOutcome;
+	private boolean update;
+	private int httpStatusCode;
+
+	public AppointmentHandlerReturnObject(
+			Appointment appointment, boolean operationSuccessful, OperationOutcome operationOutcome) {
+		this(appointment, operationSuccessful, operationOutcome, false, operationSuccessful ? 201 : 422);
+	}
+
+	public AppointmentHandlerReturnObject(
+			Appointment appointment, boolean operationSuccessful, OperationOutcome operationOutcome, boolean update) {
+		this(
+				appointment,
+				operationSuccessful,
+				operationOutcome,
+				update,
+				operationSuccessful ? (update ? 200 : 201) : 422);
+	}
 }

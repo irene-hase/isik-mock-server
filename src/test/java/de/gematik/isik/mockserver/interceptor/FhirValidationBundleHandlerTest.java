@@ -27,6 +27,8 @@ package de.gematik.isik.mockserver.interceptor;
 
 import de.gematik.isik.mockserver.refv.PluginLoader;
 import de.gematik.refv.Plugin;
+import de.gematik.refv.SupportedValidationModule;
+import de.gematik.refv.commons.validation.ValidationModule;
 import de.gematik.refv.commons.validation.ValidationResult;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +36,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static de.gematik.isik.mockserver.helper.ResourceLoadingHelper.loadResourceAsString;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,11 +49,7 @@ class FhirValidationBundleHandlerTest {
 	private FhirValidationBundleHandler fhirValidationBundleHandler;
 
 	List<String> profileUrls = List.of(
-			"https://gematik.de/fhir/isik/StructureDefinition/ISiKSubscriptionNotification",
-			"https://gematik.de/fhir/isik/v3/Medikation/StructureDefinition/ISiKMedikationTransaction",
-			"https://gematik.de/fhir/isik/v3/Medikation/StructureDefinition/ISiKMedikationTransactionResponse",
-			"https://gematik.de/fhir/isik/v3/Dokumentenaustausch/StructureDefinition/ISiKDokumentenSuchergebnisse",
-			"https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKBerichtBundle");
+		"https://gematik.de/fhir/isik/StructureDefinition/ISiKBerichtBundle");
 
 	List<Plugin> plugins = new ArrayList<>();
 
@@ -59,14 +61,7 @@ class FhirValidationBundleHandlerTest {
 		pluginLoader.init();
 
 		Plugin isik5 = pluginLoader.getPlugin("isik5");
-		Plugin isik3basismodul = pluginLoader.getPlugin("isik3-basismodul");
-		Plugin isik3medikation = pluginLoader.getPlugin("isik3-medikation");
-		Plugin isik3dokumentenaustausch = pluginLoader.getPlugin("isik3-dokumentenaustausch");
-
 		plugins.add(isik5);
-		plugins.add(isik3basismodul);
-		plugins.add(isik3medikation);
-		plugins.add(isik3dokumentenaustausch);
 	}
 
 	@SneakyThrows
@@ -85,5 +80,73 @@ class FhirValidationBundleHandlerTest {
 		ValidationResult result = fhirValidationBundleHandler.validateBundleResourceWithPlugins(body, plugins, profileUrls);
 
 		assertThat(result.isValid()).isFalse();
+	}
+
+	@SneakyThrows
+	@Test
+	void shouldCacheModuleAcrossMultipleCalls() {
+		Plugin plugin = plugins.get(0);
+		ValidationModule module1 = fhirValidationBundleHandler.getOrCreateModule(plugin);
+		ValidationModule module2 = fhirValidationBundleHandler.getOrCreateModule(plugin);
+
+		assertThat(module1).isSameAs(module2);
+	}
+
+	@SneakyThrows
+	@Test
+	void shouldCacheCoreModuleAcrossMultipleCalls() {
+		ValidationModule core1 = fhirValidationBundleHandler.getOrCreateCoreModule(SupportedValidationModule.CORE);
+		ValidationModule core2 = fhirValidationBundleHandler.getOrCreateCoreModule(SupportedValidationModule.CORE);
+
+		assertThat(core1).isSameAs(core2);
+	}
+
+	@SneakyThrows
+	@Test
+	void shouldReturnSameModuleUnderConcurrentAccess() {
+		Plugin plugin = plugins.get(0);
+		int threadCount = 8;
+		CountDownLatch latch = new CountDownLatch(1);
+		ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+
+		try {
+			List<Future<ValidationModule>> futures = new ArrayList<>();
+			for (int i = 0; i < threadCount; i++) {
+				futures.add(executor.submit(() -> {
+					latch.await();
+					return fhirValidationBundleHandler.getOrCreateModule(plugin);
+				}));
+			}
+
+			latch.countDown();
+
+			List<ValidationModule> modules = new ArrayList<>();
+			for (Future<ValidationModule> f : futures) {
+				modules.add(f.get());
+			}
+
+			// All threads should receive the same cached instance
+			ValidationModule first = modules.get(0);
+			for (ValidationModule m : modules) {
+				assertThat(m).isSameAs(first);
+			}
+		} finally {
+			executor.shutdown();
+		}
+	}
+
+	@SneakyThrows
+	@Test
+	void shouldReturnEmptyResultForNonIsik5Plugin() {
+		Plugin nonIsik5 = org.mockito.Mockito.mock(Plugin.class);
+		org.mockito.Mockito.when(nonIsik5.getId()).thenReturn("some-other-plugin");
+
+		List<Plugin> otherPlugins = List.of(nonIsik5);
+		String body = loadResourceAsString("fhir-examples/valid/valid-bundle.json");
+
+		ValidationResult result = fhirValidationBundleHandler.validateBundleResourceWithPlugins(body, otherPlugins, profileUrls);
+
+		// No isik5 plugin found, returns empty validation messages
+		assertThat(result.getValidationMessages()).isEmpty();
 	}
 }

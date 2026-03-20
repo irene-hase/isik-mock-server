@@ -1,9 +1,9 @@
 {
   "resourceType": "SearchParameter",
   "id": "Encounter-end-date",
-  "url": "https://gematik.de/fhir/isik/v3/Basismodul/SearchParameter/Encounter-end-date",
+  "url": "https://gematik.de/fhir/isik/SearchParameter/Encounter-end-date",
   "description": "The actual end date of the Encounter (Backport from R5). The parameter cannot repeat or have multiple values.",
-  "version": "3.1.0",
+  "version": "5.1.1",
   "status": "active",
   "experimental": false,
   "publisher": "gematik GmbH",

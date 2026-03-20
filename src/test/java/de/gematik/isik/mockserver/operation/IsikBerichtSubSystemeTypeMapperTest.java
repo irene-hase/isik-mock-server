@@ -42,9 +42,11 @@ import org.mockito.MockitoAnnotations;
 import java.util.Collections;
 import java.util.List;
 
-import static de.gematik.isik.mockserver.provider.DocumentReferenceStufe3ResourceProviderHelper.KDL_TYPE_CODE_SYSTEM;
-import static de.gematik.isik.mockserver.provider.DocumentReferenceStufe3ResourceProviderHelper.XDS_CLASS_CODE_SYSTEM;
-import static de.gematik.isik.mockserver.provider.DocumentReferenceStufe3ResourceProviderHelper.XDS_TYPE_CODE_SYSTEM;
+import static de.gematik.isik.mockserver.provider.DocumentReferenceResourceProviderHelper.KDL_TYPE_CODE_SYSTEM;
+import static de.gematik.isik.mockserver.provider.DocumentReferenceResourceProviderHelper.UNKNOWN_XDS_CLASS_CODE;
+import static de.gematik.isik.mockserver.provider.DocumentReferenceResourceProviderHelper.UNKNOWN_XDS_CLASS_CODE_SYSTEM;
+import static de.gematik.isik.mockserver.provider.DocumentReferenceResourceProviderHelper.XDS_CLASS_CODE_SYSTEM;
+import static de.gematik.isik.mockserver.provider.DocumentReferenceResourceProviderHelper.XDS_TYPE_CODE_SYSTEM;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -197,9 +199,11 @@ class IsikBerichtSubSystemeTypeMapperTest {
 
 		CodeableConcept docType = documentReference.getType();
 		assertThat(docType).isNotNull();
-		assertThat(docType.getCoding()).hasSize(1);
+		assertThat(docType.getCoding()).hasSize(2);
 		assertThat(docType.getCoding().get(0).getSystem()).isEqualTo(KDL_TYPE_CODE_SYSTEM);
 		assertThat(docType.getCoding().get(0).getCode()).isEqualTo("kdl3");
+		assertThat(docType.getCoding().get(1).getSystem()).isEqualTo(UNKNOWN_XDS_CLASS_CODE_SYSTEM);
+		assertThat(docType.getCoding().get(1).getCode()).isEqualTo(UNKNOWN_XDS_CLASS_CODE);
 
 		List<CodeableConcept> categories = documentReference.getCategory();
 		assertThat(categories).isEmpty();

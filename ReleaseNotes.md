@@ -2,10 +2,35 @@
 
 # Release Notes ISiK Mock Server
 
+## Release 5.0.0 (2026-03)
+
+### added
+
+- Full Support for ISiK Level 5 Specification
+- New ISIK 5 Example Resources
+- Support for `TransactionBundle`
+- Support for Asynchronous Appointment Booking
+- Core FHIR validation fallback for unmapped resource types
+- Bundle type-aware profile validation (transaction vs. document vs. searchset)
+- `Appointment` PATCH: immutable field operation-type validation
+- Slots are automatically freed when an Appointment is canceled
+- Many security measures (path traversal prevention, leak of exception details, body limits, etc.)
+
+### changed
+
+- Performance Improvements
+- Extended Search Parameters
+- KDL 2025 ValueSet invalid code issues downgraded to warnings
+
+### removed
+
+- Support for ISiK Level 3, including the validation of ISiK 3 Profiles and the related example resources
+
 ## Release 3.4.5 (2026-03)
 
 > [!WARNING]
-> ISiK Level 3 support in this Mock Server Implementation has reached the End-of-Life and will be removed with the next major release.
+> ISiK Level 3 support in this Mock Server Implementation has reached the End-of-Life and will be removed with the next
+> major release.
 > If you want to test further against this Mock Server for ISiK Level 3, please use the latest 3.4.5 Version.
 
 ### changed
@@ -15,7 +40,8 @@
 ## Release 3.4.4 (2026-03)
 
 > [!WARNING]
-> ISiK Level 3 support in this Mock Server Implementation has reached the End-of-Life and will be removed with the next major release.
+> ISiK Level 3 support in this Mock Server Implementation has reached the End-of-Life and will be removed with the next
+> major release.
 > If you want to test further against this Mock Server for ISiK Level 3, please use the latest 3.4.4 Version.
 
 ### changed
@@ -73,7 +99,7 @@
 * Bumped Version of ReferenzValidator Plugin to 2.13.0
 * For Resources without an explicit Profile, ISiK 5 Profiles are evaluated first, while ISiK 3 Profiles are used as
   fallback
-* Updated references in the README to use the DockerHub Image `gematik/isik-mock-server`
+* Updated references in the README to use the DockerHub Image `gematik1/isik-mock-server`
 
 ## Release 3.2.0 (2026-01)
 

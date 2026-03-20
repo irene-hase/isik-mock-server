@@ -1,5 +1,67 @@
 {
   "resourceType": "Organization",
   "id": "Organization-Example",
-  "name": "Test-Organization"
+  "meta": {
+    "profile": [
+      "https://gematik.de/fhir/isik/StructureDefinition/ISiKOrganisation"
+    ]
+  },
+  "identifier": [
+    {
+      "type": {
+        "coding": [
+          {
+            "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+            "code": "XX"
+          }
+        ]
+      },
+      "system": "http://fhir.de/sid/arge-ik/iknr",
+      "value": "260120013"
+    }
+  ],
+  "active": true,
+  "type": [
+    {
+      "coding": [
+        {
+          "system": "http://terminology.hl7.org/CodeSystem/organization-type",
+          "code": "dept",
+          "display": "Hospital Department"
+        }
+      ]
+    }
+  ],
+  "name": "Test-Krankenhaus Chirurgie",
+  "telecom": [
+    {
+      "system": "phone",
+      "value": "+49 30 123456-0"
+    }
+  ],
+  "address": [
+    {
+      "type": "both",
+      "line": [
+        "Musterstraße 1"
+      ],
+      "_line": [
+        {
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/StructureDefinition/iso21090-ADXP-streetName",
+              "valueString": "Musterstraße"
+            },
+            {
+              "url": "http://hl7.org/fhir/StructureDefinition/iso21090-ADXP-houseNumber",
+              "valueString": "1"
+            }
+          ]
+        }
+      ],
+      "city": "Berlin",
+      "postalCode": "10115",
+      "country": "DE"
+    }
+  ]
 }

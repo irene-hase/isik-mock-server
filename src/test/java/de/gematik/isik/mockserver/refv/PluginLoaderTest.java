@@ -48,22 +48,17 @@ class PluginLoaderTest {
 	@Test
 	void testInitShouldLoadPlugins() {
 		assertThat(pluginLoader.getPlugins())
-			.hasSize(6)
+			.hasSize(1)
 			.containsKeys(
-				"isik5",
-				"isik3-basismodul",
-				"isik3-medikation",
-				"isik3-terminplanung",
-				"isik3-dokumentenaustausch",
-				"isik3-vitalparameter"
+				"isik5"
 			);
 	}
 
 	@Test
 	void testGetPlugin() {
-		Plugin result = pluginLoader.getPlugin("isik3-basismodul");
+		Plugin result = pluginLoader.getPlugin("isik5");
 		assertThat(result).isNotNull();
-		assertThat(result.getId()).isEqualTo("isik3-basismodul");
+		assertThat(result.getId()).isEqualTo("isik5");
 	}
 
 	@Test
@@ -79,5 +74,39 @@ class PluginLoaderTest {
 		assertThatThrownBy(() -> pluginLoader.getPlugin("nonexistent"))
 			.isInstanceOf(IllegalArgumentException.class)
 			.hasMessageContaining("Validation module [nonexistent] unsupported");
+	}
+
+	@Test
+	void testInit_WhenDisabled_ShouldNotLoadPlugins() {
+		PluginLoader disabledLoader = new PluginLoader("plugins", false);
+		disabledLoader.init();
+		assertThat(disabledLoader.getPlugins()).isEmpty();
+		assertThat(disabledLoader.isEnabled()).isFalse();
+	}
+
+	@Test
+	void testInit_CalledTwice_ShouldReloadPlugins() {
+		assertThat(pluginLoader.getPlugins()).hasSize(1);
+
+		pluginLoader.init();
+		assertThat(pluginLoader.getPlugins()).hasSize(1);
+	}
+
+	@Test
+	void testGetPlugin_WhenNullId_ShouldThrowException() {
+		assertThatThrownBy(() -> pluginLoader.getPlugin(null))
+			.isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
+	void testGetPlugin_WhenEmptyId_ShouldThrowException() {
+		assertThatThrownBy(() -> pluginLoader.getPlugin(""))
+			.isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("Validation module [] unsupported");
+	}
+
+	@Test
+	void testIsEnabled_WhenEnabled_ShouldReturnTrue() {
+		assertThat(pluginLoader.isEnabled()).isTrue();
 	}
 }

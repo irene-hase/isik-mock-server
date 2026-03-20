@@ -1,5 +1,5 @@
 {
-  "resourceType": "Location",
-  "id": "Location-Example",
-  "name": "Test-Location"
+  "resourceType": "Communication",
+  "id": "Communication-Example",
+  "name": "Test-Communication"
 }

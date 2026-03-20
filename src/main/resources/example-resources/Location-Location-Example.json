@@ -1,5 +1,50 @@
 {
   "resourceType": "Location",
   "id": "Location-Example",
-  "name": "Test-Location"
+  "meta": {
+    "profile": [
+      "https://gematik.de/fhir/isik/StructureDefinition/ISiKStandort"
+    ]
+  },
+  "identifier": [
+    {
+      "system": "https://test.krankenhaus.de/fhir/sid/standort",
+      "value": "Standort-1"
+    }
+  ],
+  "status": "active",
+  "name": "Chirurgie",
+  "mode": "instance",
+  "type": [
+    {
+      "coding": [
+        {
+          "system": "http://fhir.de/CodeSystem/dkgev/Fachabteilungsschluessel",
+          "code": "1500",
+          "display": "Allgemeine Chirurgie"
+        }
+      ]
+    }
+  ],
+  "physicalType": {
+    "coding": [
+      {
+        "system": "http://terminology.hl7.org/CodeSystem/location-physical-type",
+        "code": "wa",
+        "display": "Ward"
+      }
+    ]
+  },
+  "managingOrganization": {
+    "reference": "Organization/Organization-Example"
+  },
+  "address": {
+    "type": "both",
+    "line": [
+      "Musterstraße 1"
+    ],
+    "city": "Berlin",
+    "postalCode": "10115",
+    "country": "DE"
+  }
 }
