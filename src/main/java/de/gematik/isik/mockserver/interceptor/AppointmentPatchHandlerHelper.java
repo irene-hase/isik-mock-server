@@ -38,6 +38,7 @@ import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Parameters;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.Slot;
 import org.hl7.fhir.r4.model.StringType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -46,6 +47,7 @@ import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 @Component
 @Slf4j
@@ -219,20 +221,51 @@ public class AppointmentPatchHandlerHelper {
 				.findFirst();
 	}
 
-	public void validateParametersOfTypeReplace(Parameters parameters, OperationOutcome outcome) {
+	private static final Set<String> IMMUTABLE_FIELDS = Set.of(
+			"Appointment.slot",
+			"Appointment.start",
+			"Appointment.end",
+			"Appointment.participant.actor.where(resolve() is Patient)");
+
+	public void validateImmutableFieldOperations(Parameters parameters, OperationOutcome outcome) {
 		for (Parameters.ParametersParameterComponent operation : parameters.getParameter()) {
 			if (!OPERATION.equals(operation.getName())) {
 				continue;
 			}
-			Optional<String> typeOpt = extractPartValue(operation, "type");
-			if (typeOpt.isPresent() && !"replace".equals(typeOpt.get())) {
-				String typeValue = typeOpt.get();
-				String pathValue = extractPartValue(operation, "path").orElse("unknown path");
-				log.info("{} - This server only supports operation type 'replace' but was '{}'", pathValue, typeValue);
-				OperationOutcomeUtils.addIssue(
-						outcome,
-						pathValue,
-						String.format("This server only supports operation type 'replace' but was '%s'", typeValue));
+			Optional<String> pathOpt = extractPartValue(operation, "path");
+			if (pathOpt.isEmpty()) {
+				continue;
+			}
+			String pathValue = pathOpt.get();
+			if (IMMUTABLE_FIELDS.contains(pathValue)) {
+				Optional<String> typeOpt = extractPartValue(operation, "type");
+				if (typeOpt.isPresent() && !"replace".equals(typeOpt.get())) {
+					String typeValue = typeOpt.get();
+					log.info(
+							"{} - Immutable fields only support operation type 'replace' but was '{}'",
+							pathValue,
+							typeValue);
+					OperationOutcomeUtils.addIssue(
+							outcome,
+							pathValue,
+							String.format(
+									"Immutable fields only support operation type 'replace' but was '%s'", typeValue));
+				}
+			}
+		}
+	}
+
+	public void freeAppointmentSlots(Appointment appointment, RequestDetails requestDetails) {
+		if (appointment.getSlot() == null || appointment.getSlot().isEmpty()) {
+			return;
+		}
+		for (org.hl7.fhir.r4.model.Reference slotRef : appointment.getSlot()) {
+			String slotReference = slotRef.getReference();
+			Slot slot = daoRegistry.getResourceDao(Slot.class).read(new IdType(slotReference), requestDetails);
+			if (slot.getStatus() == Slot.SlotStatus.BUSY) {
+				slot.setStatus(Slot.SlotStatus.FREE);
+				daoRegistry.getResourceDao(Slot.class).update(slot, requestDetails);
+				log.info("Slot {} status updated to FREE after appointment cancellation", slotReference);
 			}
 		}
 	}

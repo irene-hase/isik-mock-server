@@ -3,7 +3,7 @@
   "id": "CorrectCompositionBundle",
   "meta": {
     "profile": [
-      "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKBerichtBundle"
+      "https://gematik.de/fhir/isik/StructureDefinition/ISiKBerichtBundle"
     ]
   },
   "type": "document",
@@ -14,7 +14,7 @@
         "id": "CorrectComposition",
         "meta": {
           "profile": [
-            "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKBerichtSubSysteme"
+            "https://gematik.de/fhir/isik/StructureDefinition/ISiKBerichtSubSysteme"
           ]
         },
         "status": "final",

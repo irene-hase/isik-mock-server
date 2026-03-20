@@ -3,7 +3,7 @@
   "id": "Statutory-Example",
   "meta": {
     "profile": [
-      "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKVersicherungsverhaeltnisGesetzlich"
+      "https://gematik.de/fhir/isik/StructureDefinition/ISiKVersicherungsverhaeltnisGesetzlich"
     ]
   },
   "identifier": [

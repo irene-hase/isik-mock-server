@@ -1,0 +1,25 @@
+{
+  "resourceType": "Parameters",
+  "parameter": [
+    {
+      "name": "operation",
+      "part": [
+        {
+          "name": "type",
+          "valueCode": "add"
+        },
+        {
+          "name": "path",
+          "valueString": "Appointment.slot"
+        },
+        {
+          "name": "value",
+          "valueReference": {
+            "reference": "Slot/New-Slot"
+          }
+        }
+      ]
+    }
+  ]
+}
+

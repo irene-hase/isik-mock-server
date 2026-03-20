@@ -3,7 +3,7 @@
   "id": "CorrectDocumentReference",
   "meta": {
     "profile": [
-      "https://gematik.de/fhir/isik/v3/Dokumentenaustausch/StructureDefinition/ISiKDokumentenMetadaten"
+      "https://gematik.de/fhir/isik/StructureDefinition/ISiKDokumentenMetadaten"
     ]
   },
   "masterIdentifier": {
@@ -64,6 +64,7 @@
       "attachment": {
         "contentType": "application/pdf",
         "language": "de",
+        "title": "Molekularpathologiebefund vom 31.12.24",
         "data": "base64encodedPDFdata",
         "creation": "2024-12-31T23:50:50-05:00"
       }

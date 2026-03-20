@@ -6,14 +6,14 @@
       "resourceType": "Appointment",
       "id": "Appointment-Test-Example",
       "meta": {
-        "profile": [ "https://gematik.de/fhir/isik/v3/Terminplanung/StructureDefinition/ISiKTermin" ],
+        "profile": [ "https://gematik.de/fhir/isik/StructureDefinition/ISiKTermin" ],
         "tag": [ {
           "system": "http://fhir.de/CodeSystem/common-meta-tag-de",
           "code": "external"
         } ]
       },
       "extension": [ {
-        "url": "https://gematik.de/fhir/isik/v3/Terminplanung/StructureDefinition/ISiKNachrichtExtension",
+        "url": "https://gematik.de/fhir/isik/StructureDefinition/ISiKNachrichtExtension",
         "valueReference": {
           "reference": "Communication/Message-Example"
         }
@@ -38,7 +38,7 @@
       } ],
       "_priority": {
         "extension": [ {
-          "url": "https://gematik.de/fhir/isik/v3/Terminplanung/StructureDefinition/ISiKTerminPriorityExtension",
+          "url": "https://gematik.de/fhir/isik/StructureDefinition/ISiKTerminPriorityExtension",
           "valueCodeableConcept": {
             "coding": [ {
               "system": "http://snomed.info/sct",

@@ -1,100 +1,72 @@
 {
   "Account": [
-    "isik5",
-    "isik3-basismodul"
+    "isik5"
   ],
   "RelatedPerson": [
-    "isik5",
-    "isik3-basismodul"
+    "isik5"
   ],
   "Composition": [
-    "isik5",
-    "isik3-basismodul"
+    "isik5"
   ],
   "CodeSystem": [
-    "isik5",
-    "isik3-basismodul"
+    "isik5"
   ],
   "Condition": [
-    "isik5",
-    "isik3-basismodul"
+    "isik5"
   ],
   "Encounter": [
-    "isik5",
-    "isik3-basismodul"
+    "isik5"
   ],
   "Patient": [
-    "isik5",
-    "isik3-basismodul"
+    "isik5"
   ],
   "Practitioner": [
-    "isik5",
-    "isik3-basismodul"
+    "isik5"
   ],
   "Procedure": [
-    "isik5",
-    "isik3-basismodul"
+    "isik5"
   ],
   "ValueSet": [
-    "isik5",
-    "isik3-basismodul"
+    "isik5"
   ],
   "Coverage": [
-    "isik5",
-    "isik3-basismodul"
+    "isik5"
   ],
   "DocumentReference": [
-    "isik5",
-    "isik3-dokumentenaustausch"
+    "isik5"
   ],
   "Medication": [
-    "isik5",
-    "isik3-medikation"
+    "isik5"
   ],
   "MedicationStatement": [
-    "isik5",
-    "isik3-medikation"
+    "isik5"
   ],
   "List": [
-    "isik5",
-    "isik3-medikation"
+    "isik5"
   ],
   "MedicationAdministration": [
-    "isik5",
-    "isik3-medikation"
+    "isik5"
   ],
   "MedicationRequest": [
-    "isik5",
-    "isik3-medikation"
+    "isik5"
   ],
   "Schedule": [
-    "isik5",
-    "isik3-terminplanung"
+    "isik5"
   ],
   "HealthcareService": [
-    "isik5",
-    "isik3-terminplanung"
-  ],
-  "Communication": [
-    "isik3-terminplanung"
+    "isik5"
   ],
   "Appointment": [
-    "isik5",
-    "isik3-terminplanung"
+    "isik5"
   ],
   "Slot": [
-    "isik5",
-    "isik3-terminplanung"
+    "isik5"
   ],
   "Observation": [
-    "isik5",
-    "isik3-vitalparameter"
+    "isik5"
   ],
   "Bundle": [
-    "isik5",
-    "isik3-medikation",
-    "isik3-basismodul",
-    "isik3-dokumentenaustausch"
+    "isik5"
   ],
   "Organization": [
     "isik5"
@@ -103,6 +75,9 @@
     "isik5"
   ],
   "RiskAssessment": [
+    "isik5"
+  ],
+  "Binary": [
     "isik5"
   ]
 }

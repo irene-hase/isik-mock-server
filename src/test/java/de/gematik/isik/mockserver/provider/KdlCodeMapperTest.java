@@ -25,6 +25,7 @@ package de.gematik.isik.mockserver.provider;
  * #L%
  */
 
+import ca.uhn.fhir.context.FhirContext;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.ConceptMap;
 import org.junit.jupiter.api.Test;
@@ -33,7 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class KdlCodeMapperTest {
 
-	private final KdlCodeMapper mapper = new KdlCodeMapper();
+	private final KdlCodeMapper mapper = new KdlCodeMapper(FhirContext.forR4());
 
 	@Test
 	void testFindTargetCodingFound() {

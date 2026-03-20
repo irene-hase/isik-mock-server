@@ -53,7 +53,7 @@ public class AppointmentPatchHandler {
 		Appointment originalAppointment =
 				appointmentPatchHandlerHelper.getOriginalAppointment(originalAppointmentId, requestDetails);
 
-		appointmentPatchHandlerHelper.validateParametersOfTypeReplace(parameters, outcome);
+		appointmentPatchHandlerHelper.validateImmutableFieldOperations(parameters, outcome);
 
 		if (appointmentPatchHandlerHelper.isParameterPresent(parameters, APPOINTMENT_SLOT)) {
 			String patchSlotId = appointmentPatchHandlerHelper.getReferenceFromParameters(parameters, APPOINTMENT_SLOT);
@@ -79,5 +79,9 @@ public class AppointmentPatchHandler {
 		}
 
 		return outcome;
+	}
+
+	public void freeSlots(Appointment appointment, RequestDetails requestDetails) {
+		appointmentPatchHandlerHelper.freeAppointmentSlots(appointment, requestDetails);
 	}
 }

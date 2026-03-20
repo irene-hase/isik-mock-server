@@ -26,13 +26,13 @@ package de.gematik.isik.mockserver.interceptor;
  */
 
 import ca.uhn.fhir.context.FhirContext;
-import ca.uhn.fhir.context.FhirVersionEnum;
 import ca.uhn.fhir.jpa.api.dao.IFhirResourceDao;
 import ca.uhn.fhir.jpa.searchparam.SearchParameterMap;
 import ca.uhn.fhir.parser.IParser;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.exceptions.PreconditionFailedException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
@@ -45,8 +45,6 @@ import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.ResourceType;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
@@ -54,18 +52,12 @@ import java.util.List;
 
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class CompositionBundleHandler {
 
-	@Autowired
-	IFhirResourceDao<Patient> patientDao;
-
-	@Autowired
-	IFhirResourceDao<Encounter> encounterDao;
-
-	private final FhirContext ctx = FhirContext.forCached(FhirVersionEnum.R4);
-
-	@Value("${server.port}")
-	private int serverPort = 9032;
+	private final IFhirResourceDao<Patient> patientDao;
+	private final IFhirResourceDao<Encounter> encounterDao;
+	private final FhirContext ctx;
 
 	public boolean isDocBundle(final String request) {
 

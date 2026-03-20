@@ -1,0 +1,14 @@
+{
+  "resourceType": "SearchParameter",
+  "id": "DocumentReference-Facility",
+  "url": "https://gematik.de/fhir/isik/SearchParameter/DocumentReference-Facility",
+  "version": "5.1.1",
+  "name": "Facility",
+  "status": "active",
+  "description": "This SearchParameter enables finding DocumentReference by the facility type (context.facilityType).",
+  "code": "facility",
+  "base": ["DocumentReference"],
+  "type": "token",
+  "expression": "DocumentReference.context.facilityType"
+}
+

@@ -27,9 +27,11 @@ package de.gematik.isik.mockserver.async;
 
 import ca.uhn.fhir.context.FhirContext;
 import de.gematik.isik.mockserver.operation.AppointmentHandlerReturnObject;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.OperationOutcome;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,14 +40,17 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
+@RequiredArgsConstructor
+@Slf4j
 public class AsyncAppointmentBookJobController {
 
-	@Autowired
-	private AsyncAppointmentBookJobService asyncAppointmentBookJobService;
+	private final AsyncAppointmentBookJobService asyncAppointmentBookJobService;
+	private final FhirContext fhirContext;
+
+	private static final MediaType FHIR_JSON = MediaType.parseMediaType("application/fhir+json");
 
 	@GetMapping("/async-jobs/{jobId}")
 	public ResponseEntity<String> getJobResult(@PathVariable("jobId") String jobId) {
-		FhirContext fhirContext = FhirContext.forR4();
 		var optionalJob = asyncAppointmentBookJobService.getJob(jobId);
 		if (optionalJob.isEmpty()) {
 			return ResponseEntity.notFound().build();
@@ -62,26 +67,35 @@ public class AsyncAppointmentBookJobController {
 			var parser = fhirContext.newJsonParser().setPrettyPrint(true);
 			if (result.isOperationSuccessful()) {
 				String jsonResponse = parser.encodeResourceToString(result.getAppointment());
-				return ResponseEntity.status(HttpStatus.CREATED).body(jsonResponse);
+				return ResponseEntity.status(result.getHttpStatusCode())
+						.contentType(FHIR_JSON)
+						.body(jsonResponse);
 			} else {
 				String jsonResponse = parser.encodeResourceToString(result.getOperationOutcome());
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
+				return ResponseEntity.status(result.getHttpStatusCode())
+						.contentType(FHIR_JSON)
+						.body(jsonResponse);
 			}
 		} catch (Exception e) {
 			if (e instanceof InterruptedException) {
 				Thread.currentThread().interrupt();
 				return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+						.contentType(FHIR_JSON)
 						.body(String.format("The async job with id '%s' was interrupted.", jobId));
 			}
+
+			log.error(
+					"Internal error while processing the asynchronous job with id '{}': {}", jobId, e.getMessage(), e);
 
 			OperationOutcome outcome = new OperationOutcome();
 			outcome.addIssue()
 					.setDiagnostics(String.format(
-							"Internal error while processing the asynchronous job with id '%s': %s",
-							jobId, e.getMessage()));
+							"An internal error occurred while processing the asynchronous job with id '%s'.", jobId));
 			var parser = fhirContext.newJsonParser().setPrettyPrint(true);
 			String jsonResponse = parser.encodeResourceToString(outcome);
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.contentType(FHIR_JSON)
+					.body(jsonResponse);
 		}
 	}
 }

@@ -68,8 +68,16 @@ public class FhirValidationInterceptor {
 			return true;
 		}
 
-		if (StringUtils.isEmpty(theRequest.getPathInfo())
-				|| theRequest.getPathInfo().startsWith("/")) {
+		String pathInfo = theRequest.getPathInfo();
+
+		// Skip validation for FHIR operation calls (e.g., $book, $generate-metadata).
+		// Operations define their own input format and handle validation internally;
+		// nested resources in Parameters may be intentionally incomplete.
+		if (pathInfo != null && pathInfo.contains("/$")) {
+			return true;
+		}
+
+		if (StringUtils.isEmpty(pathInfo) || pathInfo.startsWith("/")) {
 			String body = ((ReusableRequestWrapper) theRequest).getBody();
 			EncodingEnum encoding = EncodingEnum.detectEncoding(body);
 			IParser parser = encoding.newParser(ctx);
@@ -102,7 +110,7 @@ public class FhirValidationInterceptor {
 		validationResult.getValidationMessages().forEach(issue -> {
 			if (issue.getMessage()
 					.contains(
-							"was not found in the value set 'ValueSet Klinische Dokumentenklassen-Liste (Version 2022)' (http://dvmd.de/fhir/ValueSet/kdl|2022)")) {
+							"was not found in the value set 'ValueSet Klinische Dokumentenklassen-Liste (Version 2025)' (http://dvmd.de/fhir/ValueSet/kdl|2025)")) {
 				issue.setSeverity(ResultSeverityEnum.WARNING);
 			}
 		});

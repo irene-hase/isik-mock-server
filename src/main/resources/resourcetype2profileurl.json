@@ -1,102 +1,75 @@
 {
   "Account": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKAbrechnungsfall",
-    "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKAbrechnungsfall"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKAbrechnungsfall"
   ],
   "RelatedPerson": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKAngehoeriger",
-    "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKAngehoeriger"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKAngehoeriger"
   ],
   "Bundle": [
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKBerichtBundle",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikationTransaction",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikationTransactionResponse",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKDokumentenSuchergebnisse",
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKBerichtBundle",
-    "https://gematik.de/fhir/isik/v3/Medikation/StructureDefinition/ISiKMedikationTransaction",
-    "https://gematik.de/fhir/isik/v3/Medikation/StructureDefinition/ISiKMedikationTransactionResponse",
-    "https://gematik.de/fhir/isik/v3/Dokumentenaustausch/StructureDefinition/ISiKDokumentenSuchergebnisse",
-    "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKBerichtBundle"
+    "https://gematik.de/fhir/isik/StructureDefinition/BackportSubscriptionNotificationR4Fixed"
   ],
   "Composition": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKBerichtSubSysteme",
-    "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKBerichtSubSysteme"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKBerichtSubSysteme"
   ],
   "CodeSystem": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKCodeSystem",
-    "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKCodeSystem"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKCodeSystem"
   ],
   "Condition": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKDiagnose",
-    "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKDiagnose"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKDiagnose"
   ],
   "Encounter": [
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKKontaktGesundheitseinrichtung",
-    "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKKontaktGesundheitseinrichtung"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKTerminKontaktMitGesundheitseinrichtung"
   ],
   "Patient": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKPatient",
-    "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKPatient"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKPatient"
   ],
   "Practitioner": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKPersonImGesundheitsberuf",
-    "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKPersonImGesundheitsberuf"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKPersonImGesundheitsberuf"
   ],
   "Procedure": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKProzedur",
-    "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKProzedur"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKProzedur"
   ],
   "ValueSet": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKValueSet",
-    "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKValueSet"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKValueSet"
   ],
   "Coverage": [
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKVersicherungsverhaeltnisSelbstzahler",
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKVersicherungsverhaeltnisGesetzlich",
-    "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKVersicherungsverhaeltnisSelbstzahler",
-    "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKVersicherungsverhaeltnisGesetzlich"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKVersicherungsverhaeltnisGesetzlich"
   ],
   "DocumentReference": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKDokumentenMetadaten",
-    "https://gematik.de/fhir/isik/v3/Dokumentenaustausch/StructureDefinition/ISiKDokumentenMetadaten"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKDokumentenMetadaten"
   ],
   "Medication": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikament",
-    "https://gematik.de/fhir/isik/v3/Medikation/StructureDefinition/ISiKMedikament"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikament"
   ],
   "MedicationStatement": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikationsInformation",
-    "https://gematik.de/fhir/isik/v3/Medikation/StructureDefinition/ISiKMedikationsInformation"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikationsInformation"
   ],
   "List": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikationsListe",
-    "https://gematik.de/fhir/isik/v3/Medikation/StructureDefinition/ISiKMedikationsListe"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikationsListe"
   ],
   "MedicationAdministration": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikationsVerabreichung",
-    "https://gematik.de/fhir/isik/v3/Medikation/StructureDefinition/ISiKMedikationsVerabreichung"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikationsVerabreichung"
   ],
   "MedicationRequest": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikationsVerordnung",
-    "https://gematik.de/fhir/isik/v3/Medikation/StructureDefinition/ISiKMedikationsVerordnung"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedikationsVerordnung"
   ],
   "Schedule": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKKalender",
-    "https://gematik.de/fhir/isik/v3/Terminplanung/StructureDefinition/ISiKKalender"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKKalender"
   ],
   "HealthcareService": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedizinischeBehandlungseinheit",
-    "https://gematik.de/fhir/isik/v3/Terminplanung/StructureDefinition/ISiKMedizinischeBehandlungseinheit"
-  ],
-  "Communication": [
-    "https://gematik.de/fhir/isik/v3/Terminplanung/StructureDefinition/ISiKNachricht"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKMedizinischeBehandlungseinheit"
   ],
   "Appointment": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKTermin",
-    "https://gematik.de/fhir/isik/v3/Terminplanung/StructureDefinition/ISiKTermin"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKTermin"
   ],
   "Slot": [
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKTerminblock",
-    "https://gematik.de/fhir/isik/v3/Terminplanung/StructureDefinition/ISiKTerminblock"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKTerminblock"
   ],
   "Observation": [
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKKopfumfang",
@@ -108,17 +81,7 @@
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKEkg",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKGCS",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKKoerpergewicht",
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKSauerstoffsaettigung",
-    "https://gematik.de/fhir/isik/v3/VitalparameterUndKoerpermasze/StructureDefinition/ISiKKopfumfang",
-    "https://gematik.de/fhir/isik/v3/VitalparameterUndKoerpermasze/StructureDefinition/ISiKKoerpertemperatur",
-    "https://gematik.de/fhir/isik/v3/VitalparameterUndKoerpermasze/StructureDefinition/ISiKHerzfrequenz",
-    "https://gematik.de/fhir/isik/v3/VitalparameterUndKoerpermasze/StructureDefinition/ISiKBlutdruck",
-    "https://gematik.de/fhir/isik/v3/VitalparameterUndKoerpermasze/StructureDefinition/ISiKKoerpergroesse",
-    "https://gematik.de/fhir/isik/v3/VitalparameterUndKoerpermasze/StructureDefinition/ISiKAtemfrequenz",
-    "https://gematik.de/fhir/isik/v3/VitalparameterUndKoerpermasze/StructureDefinition/ISiKEkg",
-    "https://gematik.de/fhir/isik/v3/VitalparameterUndKoerpermasze/StructureDefinition/ISiKGCS",
-    "https://gematik.de/fhir/isik/v3/VitalparameterUndKoerpermasze/StructureDefinition/ISiKKoerpergewicht",
-    "https://gematik.de/fhir/isik/v3/VitalparameterUndKoerpermasze/StructureDefinition/ISiKSauerstoffsaettigung"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKSauerstoffsaettigung"
   ],
   "Organization": [
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKOrganisation"
@@ -130,5 +93,8 @@
   ],
   "RiskAssessment": [
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKAMTSBewertung"
+  ],
+  "Binary": [
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKBinary"
   ]
 }

@@ -41,16 +41,16 @@ import java.nio.charset.StandardCharsets;
 public class ReusableRequestWrapper extends HttpServletRequestWrapper {
 	private final String body;
 
+	/** Maximum allowed request body size: 10 MB. */
+	private static final int MAX_BODY_SIZE = 10 * 1024 * 1024;
+
 	public ReusableRequestWrapper(HttpServletRequest request) throws IOException {
 		super(request);
-		StringBuilder stringBuilder = new StringBuilder();
-		try (BufferedReader bufferedReader = request.getReader()) {
-			String line;
-			while ((line = bufferedReader.readLine()) != null) {
-				stringBuilder.append(line).append(System.lineSeparator());
-			}
+		byte[] bodyBytes = request.getInputStream().readNBytes(MAX_BODY_SIZE);
+		if (request.getInputStream().read() != -1) {
+			throw new IOException("Request body exceeds the maximum allowed size of " + MAX_BODY_SIZE + " bytes");
 		}
-		body = stringBuilder.toString();
+		body = new String(bodyBytes, StandardCharsets.UTF_8);
 	}
 
 	@Override

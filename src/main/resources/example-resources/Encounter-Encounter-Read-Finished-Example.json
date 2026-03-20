@@ -3,7 +3,7 @@
   "id": "Encounter-Read-Finished-Example",
   "meta": {
     "profile": [
-      "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKKontaktGesundheitseinrichtung"
+      "https://gematik.de/fhir/isik/StructureDefinition/ISiKKontaktGesundheitseinrichtung"
     ]
   },
   "type": [
@@ -82,6 +82,20 @@
       ]
     }
   ],
+  "location": [
+    {
+      "location": {
+        "reference": "Location/Location-Example"
+      }
+    }
+  ],
+  "serviceProvider": {
+    "reference": "Organization/Organization-Example",
+    "identifier": {
+      "value": "260120013"
+    },
+    "display": "Test-Krankenhaus Chirurgie"
+  },
   "account": [
     {
       "reference": "Account/Booking-Case-Example",

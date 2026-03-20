@@ -1,0 +1,14 @@
+{
+  "resourceType": "SearchParameter",
+  "id": "DocumentReference-Setting",
+  "url": "https://gematik.de/fhir/isik/SearchParameter/DocumentReference-Setting",
+  "version": "5.1.1",
+  "name": "Setting",
+  "status": "active",
+  "description": "This SearchParameter enables finding DocumentReference by the practice setting (context.practiceSetting).",
+  "code": "setting",
+  "base": ["DocumentReference"],
+  "type": "token",
+  "expression": "DocumentReference.context.practiceSetting"
+}
+

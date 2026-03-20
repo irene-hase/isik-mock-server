@@ -25,9 +25,11 @@ package de.gematik.isik.mockserver.refv;
  * #L%
  */
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,39 +39,40 @@ public class PluginMappingResolver {
 
 	private final PluginMappingLoader pluginMappingLoader;
 
-	public List<String> getPluginIdsFromResourceType(String resourceType) {
-		Map<String, List<String>> pluginIdMap = pluginMappingLoader.getResourceTypeToPluginIdMap();
+	/** Reverse index: profile URL → plugin ID, built once at startup. */
+	private Map<String, String> profileUrlToPluginIdIndex;
 
-		for (Map.Entry<String, List<String>> entry : pluginIdMap.entrySet()) {
-			if (entry.getKey().equals(resourceType)) {
-				return entry.getValue();
+	@PostConstruct
+	public void buildReverseIndex() {
+		profileUrlToPluginIdIndex = new HashMap<>();
+		Map<String, List<String>> profilesMap = pluginMappingLoader.getProfileUrlToPluginIdMap();
+		if (profilesMap != null) {
+			for (Map.Entry<String, List<String>> entry : profilesMap.entrySet()) {
+				for (String profileUrl : entry.getValue()) {
+					profileUrlToPluginIdIndex.put(profileUrl, entry.getKey());
+				}
 			}
 		}
+	}
 
-		return List.of();
+	public List<String> getPluginIdsFromResourceType(String resourceType) {
+		if (resourceType == null) {
+			return List.of();
+		}
+		return pluginMappingLoader.getResourceTypeToPluginIdMap().getOrDefault(resourceType, List.of());
 	}
 
 	public List<String> getProfileUrlsFromResourceType(String resourceType) {
-		Map<String, List<String>> profileUrlMap = pluginMappingLoader.getResourceTypeToProfileUrlMap();
-
-		for (Map.Entry<String, List<String>> entry : profileUrlMap.entrySet()) {
-			if (entry.getKey().equals(resourceType)) {
-				return entry.getValue();
-			}
+		if (resourceType == null) {
+			return List.of();
 		}
-
-		return List.of();
+		return pluginMappingLoader.getResourceTypeToProfileUrlMap().getOrDefault(resourceType, List.of());
 	}
 
 	public String getPluginIdFromProfile(String profileUrl) {
-		Map<String, List<String>> profilesMap = pluginMappingLoader.getProfileUrlToPluginIdMap();
-
-		for (Map.Entry<String, List<String>> entry : profilesMap.entrySet()) {
-			if (entry.getValue().contains(profileUrl)) {
-				return entry.getKey();
-			}
+		if (profileUrl == null) {
+			return null;
 		}
-
-		return null;
+		return profileUrlToPluginIdIndex.get(profileUrl);
 	}
 }

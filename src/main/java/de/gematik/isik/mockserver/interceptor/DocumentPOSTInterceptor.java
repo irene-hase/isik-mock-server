@@ -84,9 +84,11 @@ public class DocumentPOSTInterceptor {
 					ctx.newJsonParser().encodeResourceToString(outcome);
 					theResponse.getWriter().print(ctx.newJsonParser().encodeResourceToString(outcome));
 				}
+				// Document bundle handled -> return false to stop further processing
+				return false;
 			}
-			// request handled -> return false
-			return false;
+			// Not a document bundle (e.g. transaction bundle) -> let HAPI process it
+			return true;
 		} else {
 			// request not relevant, let hapi process it -> return true
 			return true;
@@ -96,11 +98,11 @@ public class DocumentPOSTInterceptor {
 	private void checkMimeType(final HttpServletRequest theRequest) {
 		final String contentType = theRequest.getHeader(HttpHeaders.CONTENT_TYPE);
 		if (contentType == null) {
-			throw new PreconditionFailedException("Content-Type Header nicht gefunden");
+			throw new PreconditionFailedException("Content-Type header not found");
 		}
 		if (!contentType.equals(ResourceFormat.RESOURCE_XML.getHeader())
 				&& !contentType.equals(ResourceFormat.RESOURCE_JSON.getHeader())) {
-			throw new PreconditionFailedException("Content-Type Header nicht korrekt. War: " + contentType);
+			throw new PreconditionFailedException("Content-Type header is not valid. Was: " + contentType);
 		}
 	}
 }

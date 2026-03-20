@@ -25,25 +25,29 @@ package de.gematik.isik.mockserver.async;
  * #L%
  */
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import de.gematik.isik.mockserver.operation.AppointmentHandlerReturnObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @Slf4j
 public class AsyncAppointmentBookJobService {
-	private final Map<String, CompletableFuture<AppointmentHandlerReturnObject>> jobs = new ConcurrentHashMap<>();
+	private final Cache<String, CompletableFuture<AppointmentHandlerReturnObject>> jobs = Caffeine.newBuilder()
+			.expireAfterWrite(Duration.ofHours(1))
+			.maximumSize(10_000)
+			.build();
 
 	public void submitJob(String jobId, CompletableFuture<AppointmentHandlerReturnObject> jobFuture) {
 		jobs.put(jobId, jobFuture);
 	}
 
 	public Optional<CompletableFuture<AppointmentHandlerReturnObject>> getJob(String jobId) {
-		return Optional.ofNullable(jobs.get(jobId));
+		return Optional.ofNullable(jobs.getIfPresent(jobId));
 	}
 }

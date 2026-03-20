@@ -171,4 +171,56 @@ class FhirValidationHandlerHelperTest {
 			FhirValidationHandlerHelper.createFromModule(SupportedValidationModule.CORE)
 		);
 	}
+
+	@Test
+	void testGetResourceType_EmptyBody() {
+		String resourceType = FhirValidationHandlerHelper.getResourceType("");
+		assertThat(resourceType).isNull();
+	}
+
+	@Test
+	void testGetResourceType_WithExtraWhitespace() {
+		String body = "{  \"resourceType\"  :  \"Patient\"  }";
+		String resourceType = FhirValidationHandlerHelper.getResourceType(body);
+		assertThat(resourceType).isEqualTo("Patient");
+	}
+
+	@Test
+	void testGetResourceType_WithNoSpaces() {
+		String body = "{\"resourceType\":\"Observation\"}";
+		String resourceType = FhirValidationHandlerHelper.getResourceType(body);
+		assertThat(resourceType).isEqualTo("Observation");
+	}
+
+	@Test
+	void testGetResourceType_ConsistentAcrossMultipleCalls() {
+		String body = "{\"resourceType\": \"Encounter\"}";
+		String result1 = FhirValidationHandlerHelper.getResourceType(body);
+		String result2 = FhirValidationHandlerHelper.getResourceType(body);
+		assertThat(result1).isEqualTo(result2).isEqualTo("Encounter");
+	}
+
+	@Test
+	void testFindPlugin_EmptyList() {
+		Optional<Plugin> result = FhirValidationHandlerHelper.findPlugin(List.of(), "isik5");
+		assertThat(result).isEmpty();
+	}
+
+	@Test
+	void testFilterOutById_EmptyList() {
+		List<Plugin> result = FhirValidationHandlerHelper.filterOutById(List.of(), "isik5");
+		assertThat(result).isEmpty();
+	}
+
+	@Test
+	void testFindByProfile_EmptyList() {
+		List<ValidationOptions> result = FhirValidationHandlerHelper.findByProfile(List.of(), "v3");
+		assertThat(result).isEmpty();
+	}
+
+	@Test
+	void testFilterOutByProfile_EmptyList() {
+		List<ValidationOptions> result = FhirValidationHandlerHelper.filterOutByProfile(List.of(), "v3");
+		assertThat(result).isEmpty();
+	}
 }

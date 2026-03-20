@@ -1,0 +1,64 @@
+{
+  "resourceType": "Encounter",
+  "meta": {
+    "profile": [
+      "https://gematik.de/fhir/isik/StructureDefinition/ISiKKontaktGesundheitseinrichtung"
+    ]
+  },
+  "type": [
+    {
+      "coding": [
+        {
+          "system": "http://fhir.de/CodeSystem/Kontaktebene",
+          "code": "abteilungskontakt"
+        }
+      ]
+    },
+    {
+      "coding": [
+        {
+          "system": "http://fhir.de/CodeSystem/kontaktart-de",
+          "code": "normalstationaer"
+        }
+      ]
+    }
+  ],
+  "identifier": [
+    {
+      "type": {
+        "coding": [
+          {
+            "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+            "code": "VN"
+          }
+        ]
+      },
+      "system": "https://test.krankenhaus.de/fhir/sid/fallnr",
+      "value": "NOTFALL-DAR-001"
+    }
+  ],
+  "status": "in-progress",
+  "_class": {
+    "extension": [
+      {
+        "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+        "valueCode": "unknown"
+      }
+    ]
+  },
+  "serviceType": {
+    "coding": [
+      {
+        "system": "http://fhir.de/CodeSystem/dkgev/Fachabteilungsschluessel",
+        "code": "1500"
+      }
+    ]
+  },
+  "subject": {
+    "reference": "Patient/Mustermann"
+  },
+  "period": {
+    "start": "2021-07-01T08:00:00+02:00"
+  }
+}
+

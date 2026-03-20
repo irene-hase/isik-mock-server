@@ -3,7 +3,7 @@
   "id": "Encounter-Read-Planned-Example",
   "meta": {
     "profile": [
-      "https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKKontaktGesundheitseinrichtung"
+      "https://gematik.de/fhir/isik/StructureDefinition/ISiKKontaktGesundheitseinrichtung"
     ]
   },
   "type": [

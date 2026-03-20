@@ -63,6 +63,7 @@ class FhirValidationHandlerTest {
 		pluginMappingLoader.loadData();
 
 		PluginMappingResolver pluginMappingResolver = new PluginMappingResolver(pluginMappingLoader);
+		pluginMappingResolver.buildReverseIndex();
 		PluginLoader pluginLoader = new PluginLoader("plugins", true);
 		pluginLoader.init();
 		fhirValidationHandler = new FhirValidationHandler(pluginMappingResolver, pluginLoader, new FhirValidationBundleHandler());
@@ -78,8 +79,6 @@ class FhirValidationHandlerTest {
 	@ParameterizedTest
 	@ValueSource(strings = {
 		"fhir-examples/valid/valid-resource.json",
-		"fhir-examples/valid/valid-resource-no-meta-profile.json",
-		"unknown-isik3-resourcetype.json",
 		"unknown-resourcetype.json"
 	})
 	void shouldValidateValidJsonResource(String input) {
@@ -88,6 +87,20 @@ class FhirValidationHandlerTest {
 		ValidationResult result = fhirValidationHandler.validateResource(resource, body);
 
 		assertThat(result.isValid()).isTrue();
+	}
+
+	@SneakyThrows
+	@ParameterizedTest
+	@ValueSource(strings = {
+		"fhir-examples/valid/valid-resource-no-meta-profile.json",
+		"unknown-isik5-resourcetype.json",
+	})
+	void resourceWithoutProfileShouldBeInvalid(String input) {
+		String body = loadResourceAsString(input);
+		IBaseResource resource = parser.parseResource(body);
+		ValidationResult result = fhirValidationHandler.validateResource(resource, body);
+
+		assertThat(result.isValid()).isFalse();
 	}
 
 	@Test
@@ -128,7 +141,7 @@ class FhirValidationHandlerTest {
 	void shouldValidateResourceWithMultipleProfiles() {
 		Patient patient = new Patient();
 		patient.setId("test-patient");
-		patient.getMeta().addProfile("https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKPatient");
+		patient.getMeta().addProfile("https://gematik.de/fhir/isik/StructureDefinition/ISiKPatient");
 		patient.getMeta().addProfile("http://hl7.org/fhir/StructureDefinition/Patient");
 
 		String body = parser.encodeResourceToString(patient);
@@ -187,10 +200,10 @@ class FhirValidationHandlerTest {
 
 	@Test
 	@SneakyThrows
-	void shouldValidateResourceWithIsikV3Profile() {
+	void shouldValidateResourceWithIsikProfile() {
 		Patient patient = new Patient();
 		patient.setId("test-patient");
-		patient.getMeta().addProfile("https://gematik.de/fhir/isik/v3/Basismodul/StructureDefinition/ISiKPatient");
+		patient.getMeta().addProfile("https://gematik.de/fhir/isik/StructureDefinition/ISiKPatient");
 
 		String body = parser.encodeResourceToString(patient);
 		IBaseResource resource = parser.parseResource(body);

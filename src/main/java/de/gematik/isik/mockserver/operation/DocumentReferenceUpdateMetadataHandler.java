@@ -31,6 +31,7 @@ import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import de.gematik.isik.mockserver.helper.OperationOutcomeUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.text.StringEscapeUtils;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.r4.model.DocumentReference;
 import org.hl7.fhir.r4.model.IdType;
@@ -130,9 +131,10 @@ public class DocumentReferenceUpdateMetadataHandler {
 			DocumentReference documentReference,
 			DocumentReference.ReferredDocumentStatus referredStatus,
 			String currentDateTime) {
+		String escapedStatus = StringEscapeUtils.escapeHtml4(referredStatus.toCode());
+		String escapedDateTime = StringEscapeUtils.escapeHtml4(currentDateTime);
 		String infoText = String.format(
-				"<p>DocumentReference.docStatus updated to: '%s' at %s</p></div>",
-				referredStatus.toCode(), currentDateTime);
+				"<p>DocumentReference.docStatus updated to: '%s' at %s</p></div>", escapedStatus, escapedDateTime);
 
 		Narrative existingNarrative = documentReference.getText();
 		String updatedText;

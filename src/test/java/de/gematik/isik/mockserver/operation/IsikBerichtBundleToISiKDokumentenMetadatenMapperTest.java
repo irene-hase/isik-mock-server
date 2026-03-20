@@ -125,6 +125,9 @@ class IsikBerichtBundleToISiKDokumentenMetadatenMapperTest {
 		assertThat(docRef.getIdentifier()).isNotEmpty();
 		assertThat(docRef.getContent()).containsExactly(dummyContent);
 		assertThat(docRef.getContext()).isNotNull();
+		// Verify that Composition.date is mapped to DocumentReference.date (C3)
+		assertThat(docRef.getDate()).isNotNull();
+		assertThat(docRef.getDate()).isEqualTo(composition.getDate());
 	}
 
 	@Test

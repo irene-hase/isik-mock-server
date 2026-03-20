@@ -35,6 +35,7 @@ import de.gematik.refv.commons.validation.ValidationModule;
 import de.gematik.refv.commons.validation.ValidationOptions;
 import de.gematik.refv.commons.validation.ValidationResult;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IPrimitiveType;
 
@@ -44,13 +45,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @UtilityClass
+@Slf4j
 public class FhirValidationHandlerHelper {
 	private static final ValidationModuleFactory VALIDATION_MODULE_FACTORY = new ValidationModuleFactory();
-	public static final String ISIK_LEGACY_PROFILE_VERSION = "v3";
+	private static final Pattern RESOURCE_TYPE_PATTERN = Pattern.compile("\"resourceType\"\\s*:\\s*\"(.*?)\"");
 	public static final String ISIK_5_PLUGIN_ID = "isik5";
 
 	public String getResourceType(String body) {
-		Matcher m = Pattern.compile("\"resourceType\"\\s*:\\s*\"(.*?)\"").matcher(body);
+		Matcher m = RESOURCE_TYPE_PATTERN.matcher(body);
 		return m.find() ? m.group(1) : null;
 	}
 
@@ -151,9 +153,11 @@ public class FhirValidationHandlerHelper {
 		try {
 			return validationModule.validateString(body, validationOptions);
 		} catch (Exception e) {
+			log.error("Failed to initialize validation module for {}: {}", validationModule.getId(), e.getMessage(), e);
 			final var validationMessage = new SingleValidationMessage();
 			validationMessage.setMessage(String.format(
-					"Failed to initialize validation module for %s: %s", validationModule.getId(), e.getMessage()));
+					"Validation could not be performed for module '%s'. Please contact the administrator.",
+					validationModule.getId()));
 			validationMessage.setSeverity(ResultSeverityEnum.ERROR);
 			return new ValidationResult(List.of(validationMessage));
 		}
