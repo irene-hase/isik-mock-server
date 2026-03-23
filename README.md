@@ -131,7 +131,7 @@ Additional Details:
 * Operations beginning with `/$..` (e.g. `$book`) are not validated with the Referenzvalidator. Validation for such
   operations happens internally.
 * Resources without a mapped ISiK plugin are validated against the base FHIR core StructureDefinition.
-* Invalid KDL codes from the 2025 ValueSet produce warnings instead of errors, so they do not block persistence.
+* Invalid KDL codes from the 2025 ValueSet are treated as errors and will block persistence.
 * Transaction, Document, and Searchset bundles are validated only against their matching ISiK profile (e.g.,
   `ISiKMedikationTransaction` for transaction bundles).
 

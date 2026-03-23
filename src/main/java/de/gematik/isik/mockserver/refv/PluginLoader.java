@@ -202,9 +202,10 @@ public class PluginLoader {
 					.map(Object::toString)
 					.toList();
 
-			throw new IllegalArgumentException(String.format(
-					"Validation module [%s] unsupported. Supported validation modules: %s",
-					validationModuleId, supportedValidationModules));
+			throw new IllegalArgumentException("Validation module ["
+					+ validationModuleId
+					+ "] unsupported. Supported validation modules: "
+					+ supportedValidationModules);
 		}
 		return plugin;
 	}

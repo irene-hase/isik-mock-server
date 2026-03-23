@@ -31,7 +31,9 @@ import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import de.gematik.isik.mockserver.helper.OperationOutcomeUtils;
 import lombok.SneakyThrows;
+import org.hl7.fhir.r4.model.CodeType;
 import org.hl7.fhir.r4.model.DocumentReference;
+import org.hl7.fhir.r4.model.Enumerations;
 import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.Narrative;
 import org.hl7.fhir.r4.model.OperationOutcome;
@@ -45,6 +47,7 @@ import org.mockito.MockitoAnnotations;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 class DocumentReferenceUpdateMetadataHandlerTest {
 
@@ -81,7 +84,7 @@ class DocumentReferenceUpdateMetadataHandlerTest {
 		Parameters parameters = new Parameters();
 		parameters.addParameter()
 			.setName("docStatus")
-			.setValue(new StringType("final"));
+			.setValue(new CodeType("final"));
 
 		DocumentReference docRef = new DocumentReference();
 		docRef.setDocStatus(DocumentReference.ReferredDocumentStatus.PRELIMINARY);
@@ -108,7 +111,7 @@ class DocumentReferenceUpdateMetadataHandlerTest {
 		Parameters parameters = new Parameters();
 		parameters.addParameter()
 			.setName("docStatus")
-			.setValue(new StringType("current"));
+			.setValue(new CodeType("final"));
 
 		when(daoRegistry.getResourceDao(DocumentReference.class)).thenReturn(documentReferenceDao);
 		when(documentReferenceDao.read(id, requestDetails))
@@ -150,7 +153,7 @@ class DocumentReferenceUpdateMetadataHandlerTest {
 		Parameters parameters = new Parameters();
 		parameters.addParameter()
 			.setName("docStatus")
-			.setValue(new StringType("invalid_value"));
+			.setValue(createDocStatusValueWithUnexpectedToString("invalid_value"));
 
 		DocumentReference docRef = new DocumentReference();
 		when(daoRegistry.getResourceDao(DocumentReference.class)).thenReturn(documentReferenceDao);
@@ -165,7 +168,8 @@ class DocumentReferenceUpdateMetadataHandlerTest {
 		assertThat(outcome).isNotNull();
 		assertThat(OperationOutcomeUtils.hasErrorIssue(outcome)).isTrue();
 		assertThat(outcome.getIssue())
-			.anyMatch(issue -> issue.getDiagnostics().contains("Invalid docStatus value: 'invalid_value'"));
+			.anyMatch(issue -> issue.getDiagnostics().contains("Invalid docStatus value: 'invalid_value'"))
+			.anyMatch(issue -> issue.getDiagnostics().contains("preliminary, final, amended, entered-in-error"));
 	}
 
 	@Test
@@ -174,7 +178,7 @@ class DocumentReferenceUpdateMetadataHandlerTest {
 		Parameters parameters = new Parameters();
 		parameters.addParameter()
 			.setName("docStatus")
-			.setValue(new StringType("invalid_value"));
+			.setValue(createDocStatusValueWithUnexpectedToString("invalid_value"));
 		parameters.addParameter()
 			.setName("unsupported")
 			.setValue(new StringType("someValue"));
@@ -194,5 +198,97 @@ class DocumentReferenceUpdateMetadataHandlerTest {
 		assertThat(outcome.getIssue())
 			.anyMatch(issue -> issue.getDiagnostics().contains("Invalid docStatus value: 'invalid_value'"))
 			.anyMatch(issue -> issue.getDiagnostics().contains("Unsupported parameter: 'unsupported'"));
+	}
+
+	@Test
+	void testHandle_DuplicateDocStatusParameter() {
+		IdType id = new IdType("DocumentReference", "1");
+		Parameters parameters = new Parameters();
+		parameters.addParameter().setName("docStatus").setValue(new CodeType("final"));
+		parameters.addParameter().setName("docStatus").setValue(new CodeType("amended"));
+
+		DocumentReference docRef = new DocumentReference();
+		when(daoRegistry.getResourceDao(DocumentReference.class)).thenReturn(documentReferenceDao);
+		when(documentReferenceDao.read(id, requestDetails)).thenReturn(docRef);
+
+		DocumentReferenceMetadataReturnObject result = handler.handle(parameters, id, requestDetails);
+
+		assertThat(result.isOperationSuccessful()).isFalse();
+		assertThat(result.getDocumentReference()).isNull();
+		assertThat(result.getOperationOutcome()).isNotNull();
+		assertThat(result.getOperationOutcome().getIssue())
+			.anyMatch(issue -> issue.getDiagnostics().contains("Parameter 'docStatus' must be provided exactly once."));
+	}
+
+	@Test
+	void testHandle_DocStatusMustUseValueCode() {
+		IdType id = new IdType("DocumentReference", "1");
+		Parameters parameters = new Parameters();
+		parameters.addParameter().setName("docStatus").setValue(new StringType("final"));
+
+		DocumentReference docRef = new DocumentReference();
+		when(daoRegistry.getResourceDao(DocumentReference.class)).thenReturn(documentReferenceDao);
+		when(documentReferenceDao.read(id, requestDetails)).thenReturn(docRef);
+
+		DocumentReferenceMetadataReturnObject result = handler.handle(parameters, id, requestDetails);
+
+		assertThat(result.isOperationSuccessful()).isFalse();
+		assertThat(result.getDocumentReference()).isNull();
+		assertThat(result.getOperationOutcome()).isNotNull();
+		assertThat(result.getOperationOutcome().getIssue())
+			.anyMatch(issue -> issue.getDiagnostics().contains("Parameter 'docStatus' must use valueCode (FHIR type 'code')."));
+	}
+
+	@Test
+	void testHandle_EnteredInErrorAlsoUpdatesDocumentReferenceStatus() {
+		IdType id = new IdType("DocumentReference", "1");
+		Parameters parameters = new Parameters();
+		parameters.addParameter().setName("docStatus").setValue(new CodeType("entered-in-error"));
+
+		DocumentReference docRef = new DocumentReference();
+		docRef.setDocStatus(DocumentReference.ReferredDocumentStatus.PRELIMINARY);
+		docRef.setStatus(Enumerations.DocumentReferenceStatus.CURRENT);
+		docRef.setText(new Narrative());
+		when(daoRegistry.getResourceDao(DocumentReference.class)).thenReturn(documentReferenceDao);
+		when(documentReferenceDao.read(id, requestDetails)).thenReturn(docRef);
+
+		DocumentReferenceMetadataReturnObject result = handler.handle(parameters, id, requestDetails);
+
+		assertThat(result.isOperationSuccessful()).isTrue();
+		assertThat(result.getDocumentReference()).isNotNull();
+		assertThat(docRef.getDocStatus()).isEqualTo(DocumentReference.ReferredDocumentStatus.ENTEREDINERROR);
+		assertThat(docRef.getStatus()).isEqualTo(Enumerations.DocumentReferenceStatus.ENTEREDINERROR);
+		assertThat(docRef.getText().getDivAsString())
+			.contains("DocumentReference.docStatus updated to: 'entered-in-error'")
+			.contains("DocumentReference.status updated to: 'entered-in-error'");
+	}
+
+	@Test
+	void testHandle_FinalDocumentRejectsMetadataChanges() {
+		IdType id = new IdType("DocumentReference", "1");
+		Parameters parameters = new Parameters();
+		parameters.addParameter().setName("docStatus").setValue(new CodeType("amended"));
+
+		DocumentReference docRef = new DocumentReference();
+		docRef.setDocStatus(DocumentReference.ReferredDocumentStatus.FINAL);
+		when(daoRegistry.getResourceDao(DocumentReference.class)).thenReturn(documentReferenceDao);
+		when(documentReferenceDao.read(id, requestDetails)).thenReturn(docRef);
+
+		DocumentReferenceMetadataReturnObject result = handler.handle(parameters, id, requestDetails);
+
+		assertThat(result.isOperationSuccessful()).isFalse();
+		assertThat(result.getDocumentReference()).isNull();
+		assertThat(result.getOperationOutcome()).isNotNull();
+		assertThat(result.getOperationOutcome().getIssue())
+			.anyMatch(issue -> issue.getDiagnostics().contains("Metadata updates via $update-metadata are not allowed once DocumentReference.docStatus is 'final'."));
+	}
+
+	private CodeType createDocStatusValueWithUnexpectedToString(String value) {
+		return new CodeType(value) {
+			@Override
+			public String toString() {
+				return "CodeType[unexpected-rendering]";
+			}
+		};
 	}
 }

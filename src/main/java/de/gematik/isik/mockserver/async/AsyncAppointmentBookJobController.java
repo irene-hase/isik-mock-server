@@ -81,7 +81,7 @@ public class AsyncAppointmentBookJobController {
 				Thread.currentThread().interrupt();
 				return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 						.contentType(FHIR_JSON)
-						.body(String.format("The async job with id '%s' was interrupted.", jobId));
+						.body("The async job with id '" + jobId + "' was interrupted.");
 			}
 
 			log.error(
@@ -89,8 +89,8 @@ public class AsyncAppointmentBookJobController {
 
 			OperationOutcome outcome = new OperationOutcome();
 			outcome.addIssue()
-					.setDiagnostics(String.format(
-							"An internal error occurred while processing the asynchronous job with id '%s'.", jobId));
+					.setDiagnostics(
+							"An internal error occurred while processing the asynchronous job with id " + jobId);
 			var parser = fhirContext.newJsonParser().setPrettyPrint(true);
 			String jsonResponse = parser.encodeResourceToString(outcome);
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

@@ -26,11 +26,14 @@ package de.gematik.isik.mockserver.interceptor;
  */
 
 import ca.uhn.fhir.context.FhirContext;
+import ca.uhn.fhir.validation.ResultSeverityEnum;
+import ca.uhn.fhir.validation.SingleValidationMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gematik.isik.mockserver.helper.ReusableRequestWrapper;
 import de.gematik.isik.mockserver.refv.PluginLoader;
 import de.gematik.isik.mockserver.refv.PluginMappingLoader;
 import de.gematik.isik.mockserver.refv.PluginMappingResolver;
+import de.gematik.refv.commons.validation.ValidationResult;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +42,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.io.IOException;
+import java.util.List;
 
 import static de.gematik.isik.mockserver.helper.ResourceLoadingHelper.loadResourceAsString;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -108,5 +112,21 @@ class FhirValidationInterceptorTest {
 
 		assertThat(result).isFalse();
 		assertThat(response.getStatus()).isEqualTo(400);
+	}
+
+	@Test
+	void kdl2025InvalidCodeIssues_shouldRemainAsErrors() {
+		SingleValidationMessage kdlErrorMessage = new SingleValidationMessage();
+		kdlErrorMessage.setSeverity(ResultSeverityEnum.ERROR);
+		kdlErrorMessage.setMessage(
+				"The code 'INVALID_CODE' was not found in the value set 'ValueSet Klinische Dokumentenklassen-Liste (Version 2025)' (http://dvmd.de/fhir/ValueSet/kdl|2025)");
+
+		ValidationResult validationResult = new ValidationResult(List.of(kdlErrorMessage));
+
+		// The ValidationResult should remain invalid because the KDL error is NOT downgraded to a warning
+		assertThat(validationResult.isValid()).isFalse();
+		assertThat(validationResult.getValidationMessages()).hasSize(1);
+		assertThat(validationResult.getValidationMessages().stream().findFirst().orElseThrow().getSeverity())
+				.isEqualTo(ResultSeverityEnum.ERROR);
 	}
 }
