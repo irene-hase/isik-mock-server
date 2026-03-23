@@ -2,6 +2,18 @@
 
 # Release Notes ISiK Mock Server
 
+## Release 5.0.1 (2026-03)
+
+### fixed
+
+- DocumentUpdateMetadata: when `docStatus` is `final`, it cannot be changed into `entered-in-error`
+- KDL 2025 ValueSet invalid code issues are enforced as errors, preventing persistence of resources with invalid codes
+- Added missing [THIRD_PARTY.txt](./THIRD-PARTY.txt) file
+
+### changed
+
+- Updated Docker Base Image to latest version 1.0.9
+
 ## Release 5.0.0 (2026-03)
 
 ### added

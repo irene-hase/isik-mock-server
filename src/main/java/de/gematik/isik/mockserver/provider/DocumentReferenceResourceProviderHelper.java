@@ -30,10 +30,16 @@ import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import de.gematik.isik.mockserver.helper.OperationOutcomeUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.r4.model.Binary;
+import org.hl7.fhir.r4.model.CodeableConcept;
+import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.ConceptMap;
 import org.hl7.fhir.r4.model.DocumentReference;
+import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.IdType;
+import org.hl7.fhir.r4.model.OperationOutcome;
+import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Reference;
-import org.hl7.fhir.r4.model.*;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -77,24 +83,20 @@ public class DocumentReferenceResourceProviderHelper {
 
 	public void validateEncounter(
 			DocumentReference theResource, OperationOutcome outcome, RequestDetails requestDetails) {
-		Reference encounterReference = theResource.getContext().getEncounter().get(0);
+		Reference encounterReference = theResource.getContext().getEncounter().getFirst();
 		if (!encounterExists(encounterReference, requestDetails)) {
-			log.info("Invalid request body: Encounter " + encounterReference.getReference() + MESSAGE_IS_UNKNOWN);
-			OperationOutcomeUtils.addIssue(
-					outcome,
-					"DocumentReference.context.encounter",
-					String.format("Encounter %s%s", encounterReference.getReference(), MESSAGE_IS_UNKNOWN));
+			String message = "Encounter " + encounterReference.getReference() + MESSAGE_IS_UNKNOWN;
+			log.info("Invalid request body: {}", message);
+			OperationOutcomeUtils.addIssue(outcome, "DocumentReference.context.encounter", message);
 		}
 	}
 
 	public void validatePatient(
 			DocumentReference theResource, OperationOutcome outcome, RequestDetails requestDetails) {
 		if (!patientExists(theResource.getSubject(), requestDetails)) {
-			log.info("Invalid request body: Patient " + theResource.getSubject().getReference() + MESSAGE_IS_UNKNOWN);
-			OperationOutcomeUtils.addIssue(
-					outcome,
-					"DocumentReference.subject",
-					String.format("Patient %s%s", theResource.getSubject().getReference(), MESSAGE_IS_UNKNOWN));
+			String message = "Patient " + theResource.getSubject().getReference() + MESSAGE_IS_UNKNOWN;
+			log.info("Invalid request body: Patient {}", message);
+			OperationOutcomeUtils.addIssue(outcome, "DocumentReference.subject", message);
 		}
 	}
 
@@ -123,12 +125,9 @@ public class DocumentReferenceResourceProviderHelper {
 		if (targetCoding != null) {
 			category.add(new CodeableConcept(targetCoding));
 		} else {
-			log.info("No mapping found for KDL code: " + kdlTypeCode.getCode() + " to " + XDS_CLASS_CODE_SYSTEM);
-			OperationOutcomeUtils.addIssue(
-					outcome,
-					DOCUMENT_REFERENCE_TYPE,
-					String.format(
-							"No mapping found for KDL code: %s to %s", kdlTypeCode.getCode(), XDS_CLASS_CODE_SYSTEM));
+			String message = "No mapping found for KDL code: " + kdlTypeCode.getCode() + " to " + XDS_CLASS_CODE_SYSTEM;
+			log.info(message);
+			OperationOutcomeUtils.addIssue(outcome, DOCUMENT_REFERENCE_TYPE, message);
 		}
 	}
 
@@ -139,12 +138,9 @@ public class DocumentReferenceResourceProviderHelper {
 		if (targetCoding != null) {
 			coding.add(targetCoding);
 		} else {
-			log.info("No mapping found for KDL code: " + kdlTypeCode.getCode() + " to " + XDS_TYPE_CODE_SYSTEM);
-			OperationOutcomeUtils.addIssue(
-					outcome,
-					DOCUMENT_REFERENCE_TYPE,
-					String.format(
-							"No mapping found for KDL code: %s to %s", kdlTypeCode.getCode(), XDS_TYPE_CODE_SYSTEM));
+			String message = "No mapping found for KDL code: " + kdlTypeCode.getCode() + " to " + XDS_TYPE_CODE_SYSTEM;
+			log.info(message);
+			OperationOutcomeUtils.addIssue(outcome, DOCUMENT_REFERENCE_TYPE, message);
 		}
 	}
 
@@ -154,8 +150,9 @@ public class DocumentReferenceResourceProviderHelper {
 				.filter(c -> c.getSystem().equals(KDL_TYPE_CODE_SYSTEM))
 				.findFirst();
 		if (kdlCode.isEmpty()) {
-			log.info("No KDL code in type element found");
-			OperationOutcomeUtils.addIssue(outcome, DOCUMENT_REFERENCE_TYPE, "No KDL code in type element found");
+			String message = "No KDL code in type element found";
+			log.info(message);
+			OperationOutcomeUtils.addIssue(outcome, DOCUMENT_REFERENCE_TYPE, message);
 			return new Coding();
 		}
 		return kdlCode.get();

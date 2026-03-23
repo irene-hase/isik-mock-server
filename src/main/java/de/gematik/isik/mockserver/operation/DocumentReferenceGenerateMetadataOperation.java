@@ -90,18 +90,10 @@ public class DocumentReferenceGenerateMetadataOperation implements IResourceProv
 		EncodingEnum encoding = parsedRequest.encoding();
 
 		if (!isIsikBerichtBundle(incomingResource)) {
+			String message = "Unsupported Document Type - must be " + ISIK_BERICHT_BUNDLE_PROFILE;
 			OperationOutcome outcome = new OperationOutcome();
-			outcome.addIssue()
-					.setSeverity(OperationOutcome.IssueSeverity.ERROR)
-					.setDiagnostics(
-							String.format("Unsupported Document Type - must be %s", ISIK_BERICHT_BUNDLE_PROFILE));
-			ResponseUtils.sendValidationErrorResponse(
-					theResponse,
-					400,
-					outcome,
-					String.format("Unsupported Document Type - must be %s", ISIK_BERICHT_BUNDLE_PROFILE),
-					parser,
-					encoding);
+			outcome.addIssue().setSeverity(OperationOutcome.IssueSeverity.ERROR).setDiagnostics(message);
+			ResponseUtils.sendValidationErrorResponse(theResponse, 400, outcome, message, parser, encoding);
 			return null;
 		}
 
@@ -109,18 +101,10 @@ public class DocumentReferenceGenerateMetadataOperation implements IResourceProv
 
 		Optional<Composition> compositionOptional = extractCompositionFromBundle(incomingBundle);
 		if (compositionOptional.isEmpty()) {
+			String message = "Couldn't find correct Composition in Bundle: " + ISIK_BERICHT_SUBSYSTEME_PROFILE;
 			OperationOutcome outcome = new OperationOutcome();
-			outcome.addIssue()
-					.setSeverity(OperationOutcome.IssueSeverity.ERROR)
-					.setDiagnostics(String.format(
-							"Couldn't find correct Composition in Bundle: %s", ISIK_BERICHT_SUBSYSTEME_PROFILE));
-			ResponseUtils.sendValidationErrorResponse(
-					theResponse,
-					400,
-					outcome,
-					String.format("Couldn't find correct Composition in Bundle: %s", ISIK_BERICHT_SUBSYSTEME_PROFILE),
-					parser,
-					encoding);
+			outcome.addIssue().setSeverity(OperationOutcome.IssueSeverity.ERROR).setDiagnostics(message);
+			ResponseUtils.sendValidationErrorResponse(theResponse, 400, outcome, message, parser, encoding);
 			return null;
 		}
 

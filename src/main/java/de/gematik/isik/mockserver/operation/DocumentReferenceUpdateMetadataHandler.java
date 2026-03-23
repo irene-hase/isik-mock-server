@@ -34,21 +34,30 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringEscapeUtils;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.r4.model.DocumentReference;
+import org.hl7.fhir.r4.model.Enumerations;
 import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.Narrative;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Parameters;
+import org.hl7.fhir.r4.model.PrimitiveType;
+import org.hl7.fhir.r4.model.Type;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Component
 @Slf4j
 @RequiredArgsConstructor
 public class DocumentReferenceUpdateMetadataHandler {
+
+	private static final String DOC_STATUS_PARAMETER_NAME = "docStatus";
+	private static final String DOC_STATUS_PARAMETER_TYPE = "code";
+	private static final List<String> SUPPORTED_DOC_STATUS_VALUES =
+			List.of("preliminary", "final", "amended", "entered-in-error");
 
 	@Autowired
 	private final DaoRegistry daoRegistry;
@@ -88,42 +97,90 @@ public class DocumentReferenceUpdateMetadataHandler {
 
 	private String extractDocStatusParameter(Parameters parameters, OperationOutcome outcome) {
 		String docStatusParam = null;
+		boolean docStatusParameterSeen = false;
 		for (Parameters.ParametersParameterComponent param : parameters.getParameter()) {
-			if ("docStatus".equals(param.getName())) {
-				docStatusParam = param.getValue().toString();
+			if (DOC_STATUS_PARAMETER_NAME.equals(param.getName())) {
+				if (docStatusParameterSeen) {
+					addErrorIssue(outcome, "Parameter 'docStatus' must be provided exactly once.");
+					continue;
+				}
+				docStatusParameterSeen = true;
+				docStatusParam = extractCodeParameterValue(param.getValue(), outcome);
 			} else {
-				String message = String.format("Unsupported parameter: '%s'", param.getName());
-				outcome.addIssue()
-						.setSeverity(OperationOutcome.IssueSeverity.ERROR)
-						.setDiagnostics(message);
-				log.info(message);
+				addErrorIssue(outcome, String.format("Unsupported parameter: '%s'", param.getName()));
 			}
 		}
-		if (docStatusParam == null) {
-			String message = "Missing required parameter: 'docStatus'";
-			log.info(message);
-			outcome.addIssue().setDiagnostics(message).setSeverity(OperationOutcome.IssueSeverity.ERROR);
+		if (!docStatusParameterSeen) {
+			addErrorIssue(outcome, "Missing required parameter: 'docStatus'");
 		}
 		return docStatusParam;
 	}
 
+	private String extractCodeParameterValue(Type parameterValue, OperationOutcome outcome) {
+		if (parameterValue == null) {
+			addErrorIssue(outcome, "Missing value for required parameter: 'docStatus'");
+			return null;
+		}
+		if (!DOC_STATUS_PARAMETER_TYPE.equals(parameterValue.fhirType())) {
+			addErrorIssue(outcome, "Parameter 'docStatus' must use valueCode (FHIR type 'code').");
+			return null;
+		}
+		if (parameterValue instanceof PrimitiveType<?> primitiveType) {
+			String primitiveValue = primitiveType.primitiveValue();
+			if (primitiveValue == null || primitiveValue.isBlank()) {
+				addErrorIssue(outcome, "Parameter 'docStatus' must not be empty.");
+				return null;
+			}
+			return primitiveValue;
+		}
+		addErrorIssue(outcome, "Parameter 'docStatus' must use valueCode (FHIR type 'code').");
+		return null;
+	}
+
 	private void updateDocumentReference(
 			DocumentReference documentReference, String docStatusParam, OperationOutcome outcome) {
+		if (!SUPPORTED_DOC_STATUS_VALUES.contains(docStatusParam)) {
+			addErrorIssue(
+					outcome,
+					String.format(
+							"Invalid docStatus value: '%s'. Supported values for $update-metadata are: %s",
+							docStatusParam, String.join(", ", SUPPORTED_DOC_STATUS_VALUES)));
+			return;
+		}
+
+		if (documentReference.getDocStatus() == DocumentReference.ReferredDocumentStatus.FINAL
+				&& !DocumentReference.ReferredDocumentStatus.FINAL.toCode().equals(docStatusParam)) {
+			addErrorIssue(
+					outcome,
+					"Metadata updates via $update-metadata are not allowed once DocumentReference.docStatus is 'final'.");
+			return;
+		}
+
 		try {
 			DocumentReference.ReferredDocumentStatus referredStatus =
 					DocumentReference.ReferredDocumentStatus.fromCode(docStatusParam);
 			documentReference.setDocStatus(referredStatus);
+			if (DocumentReference.ReferredDocumentStatus.ENTEREDINERROR == referredStatus) {
+				documentReference.setStatus(Enumerations.DocumentReferenceStatus.ENTEREDINERROR);
+			}
 
-			// Prepare the infoText message with timestamp.
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 			String currentDateTime = LocalDateTime.now().format(formatter);
 			Narrative narrative = getNarrative(documentReference, referredStatus, currentDateTime);
 			documentReference.setText(narrative);
 		} catch (FHIRException e) {
-			String message = String.format("Invalid docStatus value: '%s'", docStatusParam);
-			log.error(message, e);
-			outcome.addIssue().setSeverity(OperationOutcome.IssueSeverity.ERROR).setDiagnostics(message);
+			addErrorIssue(outcome, String.format("Invalid docStatus value: '%s'", docStatusParam), e);
 		}
+	}
+
+	private void addErrorIssue(OperationOutcome outcome, String message) {
+		log.info(message);
+		outcome.addIssue().setSeverity(OperationOutcome.IssueSeverity.ERROR).setDiagnostics(message);
+	}
+
+	private void addErrorIssue(OperationOutcome outcome, String message, Exception exception) {
+		log.error(message, exception);
+		outcome.addIssue().setSeverity(OperationOutcome.IssueSeverity.ERROR).setDiagnostics(message);
 	}
 
 	@NotNull
@@ -133,17 +190,20 @@ public class DocumentReferenceUpdateMetadataHandler {
 			String currentDateTime) {
 		String escapedStatus = StringEscapeUtils.escapeHtml4(referredStatus.toCode());
 		String escapedDateTime = StringEscapeUtils.escapeHtml4(currentDateTime);
-		String infoText = String.format(
-				"<p>DocumentReference.docStatus updated to: '%s' at %s</p></div>", escapedStatus, escapedDateTime);
+		StringBuilder infoText = new StringBuilder(
+				"<p>DocumentReference.docStatus updated to: '" + escapedStatus + "' at " + escapedDateTime + "</p>");
+		if (documentReference.getStatus() == Enumerations.DocumentReferenceStatus.ENTEREDINERROR) {
+			infoText.append("<p>DocumentReference.status updated to: 'entered-in-error'</p>");
+		}
 
 		Narrative existingNarrative = documentReference.getText();
 		String updatedText;
 		if (existingNarrative != null
 				&& existingNarrative.getDivAsString() != null
 				&& !existingNarrative.getDivAsString().isEmpty()) {
-			updatedText = existingNarrative.getDivAsString().replace("</div>", "") + infoText;
+			updatedText = existingNarrative.getDivAsString().replace("</div>", "") + infoText + "</div>";
 		} else {
-			updatedText = "<div>" + infoText;
+			updatedText = "<div>" + infoText + "</div>";
 		}
 
 		Narrative narrative = new Narrative();

@@ -67,7 +67,7 @@ public class KdlCodeMapper {
 					if (element.getCode().equals(sourceCode)
 							&& !element.getTarget().isEmpty()) {
 						ConceptMap.TargetElementComponent target =
-								element.getTarget().get(0);
+								element.getTarget().getFirst();
 						return new Coding(targetSystem, target.getCode(), target.getDisplay());
 					}
 				}

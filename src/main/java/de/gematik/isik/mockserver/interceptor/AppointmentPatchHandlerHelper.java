@@ -78,8 +78,8 @@ public class AppointmentPatchHandlerHelper {
 				return extractReference(operation, location);
 			}
 		}
-		throw new IllegalArgumentException(String.format(
-				"The '%s' parameter is missing or invalid in the provided Parameters resource.", location));
+		throw new IllegalArgumentException(
+				"The '" + location + "' parameter is missing or invalid in the provided Parameters resource.");
 	}
 
 	public String getDateFromParameters(Parameters parameters, String location) {
@@ -88,8 +88,8 @@ public class AppointmentPatchHandlerHelper {
 				return extractDate(operation, location);
 			}
 		}
-		throw new IllegalArgumentException(String.format(
-				"The '%s' parameter is missing or invalid in the provided Parameters resource.", location));
+		throw new IllegalArgumentException(
+				"The '" + location + "' parameter is missing or invalid in the provided Parameters resource.");
 	}
 
 	private boolean isOperationForSpecifiedLocation(

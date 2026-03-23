@@ -31,7 +31,6 @@ import ca.uhn.fhir.interceptor.api.Interceptor;
 import ca.uhn.fhir.interceptor.api.Pointcut;
 import ca.uhn.fhir.parser.IParser;
 import ca.uhn.fhir.rest.api.EncodingEnum;
-import ca.uhn.fhir.validation.ResultSeverityEnum;
 import de.gematik.isik.mockserver.helper.ResponseUtils;
 import de.gematik.isik.mockserver.helper.ReusableRequestWrapper;
 import de.gematik.isik.mockserver.helper.ValidationResultFilter;
@@ -86,8 +85,6 @@ public class FhirValidationInterceptor {
 			ValidationResult validationResult = validationHandler.validateResource(resource, body);
 			ValidationResult filteredResult = ValidationResultFilter.filter(validationResult);
 
-			setInvalidCodeIssuesAsWarning(filteredResult);
-
 			if (!filteredResult.isValid()) {
 				OperationOutcome result =
 						new ValidationResultToOperationOutcomeConverter(ctx).toOperationOutcome(filteredResult);
@@ -104,15 +101,5 @@ public class FhirValidationInterceptor {
 		}
 
 		return true;
-	}
-
-	void setInvalidCodeIssuesAsWarning(final ValidationResult validationResult) {
-		validationResult.getValidationMessages().forEach(issue -> {
-			if (issue.getMessage()
-					.contains(
-							"was not found in the value set 'ValueSet Klinische Dokumentenklassen-Liste (Version 2025)' (http://dvmd.de/fhir/ValueSet/kdl|2025)")) {
-				issue.setSeverity(ResultSeverityEnum.WARNING);
-			}
-		});
 	}
 }

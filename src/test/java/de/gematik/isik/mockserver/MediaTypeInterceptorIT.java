@@ -52,7 +52,7 @@ class MediaTypeInterceptorIT {
 	private TestRestTemplate restTemplate;
 
 	private String baseUrl() {
-		return String.format("http://localhost:%d/fhir/", port);
+		return "http://localhost:" + port + "/fhir/";
 	}
 
 	@ParameterizedTest(name = "GET /metadata – Accept=\"{0}\" → HTTP {1}")

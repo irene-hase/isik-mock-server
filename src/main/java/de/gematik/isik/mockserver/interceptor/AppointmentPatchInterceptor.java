@@ -94,9 +94,9 @@ public class AppointmentPatchInterceptor {
 				OperationOutcome outcome = new OperationOutcome();
 				outcome.addIssue()
 						.setSeverity(OperationOutcome.IssueSeverity.ERROR)
-						.setDiagnostics(String.format(
-								"Wrong ResourceType in request body: '%s'. Request body must be a Parameters resource for PATCH requests.",
-								resource.getIdElement().getResourceType()));
+						.setDiagnostics("Wrong ResourceType in request body: '"
+								+ resource.getIdElement().getResourceType()
+								+ "'. Request body must be a Parameters resource for PATCH requests.");
 				ResponseUtils.sendValidationErrorResponse(
 						theResponse, 400, outcome, "Invalid request body for PATCH operation.", parser, encoding);
 				return false;

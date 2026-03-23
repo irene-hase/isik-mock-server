@@ -1,0 +1,11 @@
+{
+  "resourceType": "Parameters",
+  "id": "ParametersExampleUpdateMetadataDelete",
+  "parameter": [
+    {
+      "name": "docStatus",
+      "valueCode": "entered-in-error"
+    }
+  ]
+}
+
