@@ -2,6 +2,12 @@
 
 # Release Notes ISiK Mock Server
 
+## Release 5.0.2 (2026-04)
+
+### changed
+
+- Updated Docker Base Image to latest version 1.0.10
+
 ## Release 5.0.1 (2026-03)
 
 ### fixed
