@@ -36,14 +36,14 @@
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKTerminKontaktMitGesundheitseinrichtung",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKTerminPriorityExtension",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKAtemfrequenz",
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKBlutdruck",
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKEkg",
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKBlutdruckSystemischArteriell",
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKEKG",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKGCS",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKHerzfrequenz",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKKoerpergewicht",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKKoerpergroesse",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKKoerpertemperatur",
     "https://gematik.de/fhir/isik/StructureDefinition/ISiKKopfumfang",
-    "https://gematik.de/fhir/isik/StructureDefinition/ISiKSauerstoffsaettigung"
+    "https://gematik.de/fhir/isik/StructureDefinition/ISiKSauerstoffsaettigungArteriell"
   ]
 }

@@ -2,6 +2,12 @@
 
 # Release Notes ISiK Mock Server
 
+## Release 5.0.3 (2026-04)
+
+### fixed
+
+- Corrected supported ISiK 5 Profiles for Module **Vitalparameter**
+
 ## Release 5.0.2 (2026-04)
 
 ### changed
