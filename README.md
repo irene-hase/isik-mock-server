@@ -36,11 +36,6 @@
 This is a simple implementation of ISiK Level 5 specifications to be used as a simulation for testing purposes. It
 is based on the [HAPI FHIR Starter Project](https://github.com/hapifhir/hapi-fhir-jpaserver-starter).
 
-> [!WARNING]
-> ISiK Level 3 support in this Mock Server Implementation has reached the End-of-Life and will be removed with the next
-> major release.
-> If you want to test further against this Mock Server for ISiK Level 3, please use the latest 3.4.5 Version.
-
 ### Release Notes
 
 See [ReleaseNotes.md](./ReleaseNotes.md) for all information regarding the (newest) releases.
