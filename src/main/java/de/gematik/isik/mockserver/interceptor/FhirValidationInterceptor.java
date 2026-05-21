@@ -63,16 +63,16 @@ public class FhirValidationInterceptor {
 			throws IOException, ValidationModuleInitializationException {
 
 		String httpMethod = theRequest.getMethod();
+		// process only POST and PUT requests
 		if (!("POST".equalsIgnoreCase(httpMethod) || "PUT".equalsIgnoreCase(httpMethod))) {
 			return true;
 		}
 
 		String pathInfo = theRequest.getPathInfo();
-
-		// Skip validation for FHIR operation calls (e.g., $book, $generate-metadata).
+		// Skip validation for FHIR operation calls (e.g., $book, $generate-metadata) or _search.
 		// Operations define their own input format and handle validation internally;
 		// nested resources in Parameters may be intentionally incomplete.
-		if (pathInfo != null && pathInfo.contains("/$")) {
+		if (pathInfo != null && (pathInfo.contains("/$") || pathInfo.contains("/_search"))) {
 			return true;
 		}
 
@@ -92,7 +92,7 @@ public class FhirValidationInterceptor {
 						theResponse,
 						400,
 						result,
-						"The fhir resource inside the request is invalid. It will not be saved.",
+						"The FHIR resource inside the request is invalid. It will not be saved.",
 						parser,
 						encoding);
 
