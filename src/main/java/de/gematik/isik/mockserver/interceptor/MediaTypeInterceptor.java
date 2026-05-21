@@ -33,6 +33,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -62,6 +63,12 @@ public class MediaTypeInterceptor {
 		String method = theRequest.getMethod();
 		if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method) || "PATCH".equalsIgnoreCase(method)) {
 			String contentTypeHeader = theRequest.getHeader("Content-Type");
+			String path = theRequest.getPathInfo();
+			// for _search, the only supported MediaType is the application form urlencoded
+			if (path != null && path.contains("/_search")) {
+				MediaType contentType = MediaType.parseMediaType(contentTypeHeader);
+				return contentType.equals(MediaType.APPLICATION_FORM_URLENCODED);
+			}
 			return validator.validateContentTypeHeader(contentTypeHeader, theResponse);
 		}
 

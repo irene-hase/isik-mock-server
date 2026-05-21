@@ -2,6 +2,21 @@
 
 # Release Notes ISiK Mock Server
 
+## Release 5.0.5 (2026-05)
+
+### added
+
+- New ISIK5 Plugin 1.0.2 (Spec Version 5.1.2), fixing the validation for `ISiKLebensZustand`-derived Profiles
+
+### changed
+
+- Upgraded HAPI FHIR to 8.8.1
+- Updated Docker Base Image to latest version 1.0.12
+
+### fixed
+
+- Logic in the interceptor, preventing the execution of Search Queries with the POST HTTP Method
+
 ## Release 5.0.4 (2026-04)
 
 ### fixed
