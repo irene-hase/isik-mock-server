@@ -34,6 +34,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.Locale;
 
 @Component
 public class RequestWrapperFilter implements Filter {
@@ -44,10 +45,25 @@ public class RequestWrapperFilter implements Filter {
 		if (request instanceof HttpServletRequest httpServletRequest) {
 			String method = httpServletRequest.getMethod();
 			if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method) || "PATCH".equalsIgnoreCase(method)) {
+				String pathInfo = httpServletRequest.getPathInfo();
+				String contentType = httpServletRequest.getContentType();
+				if (isPostSearch(pathInfo) && isFormUrlEncoded(contentType)) {
+					chain.doFilter(request, response);
+					return;
+				}
 				chain.doFilter(new ReusableRequestWrapper(httpServletRequest), response);
 				return;
 			}
 		}
 		chain.doFilter(request, response);
+	}
+
+	private static boolean isPostSearch(String pathInfo) {
+		return pathInfo != null && pathInfo.contains("/_search");
+	}
+
+	private static boolean isFormUrlEncoded(String contentType) {
+		return contentType != null
+				&& contentType.toLowerCase(Locale.ROOT).startsWith("application/x-www-form-urlencoded");
 	}
 }
