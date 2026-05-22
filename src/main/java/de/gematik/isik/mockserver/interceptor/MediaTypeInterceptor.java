@@ -67,6 +67,7 @@ public class MediaTypeInterceptor {
 			// for _search, the only supported MediaType is the application form urlencoded
 			if (path != null && path.contains("/_search")) {
 				MediaType contentType = MediaType.parseMediaType(contentTypeHeader);
+				log.debug("Search POST query detected");
 				return contentType.equals(MediaType.APPLICATION_FORM_URLENCODED);
 			}
 			return validator.validateContentTypeHeader(contentTypeHeader, theResponse);

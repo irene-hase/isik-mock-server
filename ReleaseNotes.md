@@ -2,6 +2,12 @@
 
 # Release Notes ISiK Mock Server
 
+## Release 5.0.6 (2026-05)
+
+### fixed
+
+- Bugfix for the POST-based Search Queries
+
 ## Release 5.0.5 (2026-05)
 
 ### added

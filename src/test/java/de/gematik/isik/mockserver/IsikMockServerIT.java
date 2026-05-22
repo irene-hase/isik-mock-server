@@ -65,7 +65,10 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.io.IOException;
@@ -438,4 +441,45 @@ class IsikMockServerIT {
         var idFound = results.getEntry().stream().anyMatch(e -> e.getResource().getId().equals(createdValueSet.getId().toString()));
         assertTrue(idFound, "Created value set not found");
     }
+
+  @SneakyThrows
+  @Test
+  void patientIdSearchWithPostSearchEndpointFiltersCorrectly() {
+    Patient firstPatient =
+        (Patient)
+            ourCtx.newJsonParser().parseResource(loadResourceAsString("fhir-examples/valid/valid-patient.json"));
+    Patient secondPatient =
+        (Patient)
+            ourCtx.newJsonParser().parseResource(loadResourceAsString("fhir-examples/valid/valid-patient.json"));
+
+    var createdFirst = ourClient.create().resource(firstPatient).execute();
+    var createdSecond = ourClient.create().resource(secondPatient).execute();
+
+    String firstPatientIdPart = createdFirst.getId().getIdPart();
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+    headers.setAccept(List.of(MediaType.parseMediaType("application/fhir+json")));
+
+    MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+    formData.add("_id", firstPatientIdPart);
+
+    try {
+      ResponseEntity<String> response =
+          restTemplate.exchange(
+              getServerHostAndPort() + "/Patient/_search",
+              HttpMethod.POST,
+              new HttpEntity<>(formData, headers),
+              String.class);
+
+      assertThat(response.getStatusCode().value()).isEqualTo(200);
+      Bundle bundle = (Bundle) ourCtx.newJsonParser().parseResource(response.getBody());
+      assertThat(bundle.getEntry()).hasSize(1);
+      assertThat(bundle.getEntryFirstRep().getResource().getIdElement().getIdPart())
+          .isEqualTo(firstPatientIdPart);
+    } finally {
+      ourClient.delete().resource(createdFirst.getResource()).execute();
+      ourClient.delete().resource(createdSecond.getResource()).execute();
+    }
+  }
 }
