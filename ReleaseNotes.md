@@ -4,6 +4,12 @@
 
 ## Release 5.0.6 (2026-05)
 
+### changed
+
+- Upgraded dependencies
+
+## Release 5.0.6 (2026-05)
+
 ### fixed
 
 - Bugfix for the POST-based Search Queries
