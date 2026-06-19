@@ -1,0 +1,30 @@
+{
+    "resourceType": "SearchParameter",
+    "id": "AllergyIntolerance-onset",
+    "url": "https://gematik.de/fhir/isik/SearchParameter/AllergyIntolerance-onset",
+    "description": "Defines the initial date of an allergy or intolerance",
+    "version": "5.1.1",
+    "status": "active",
+    "experimental": false,
+    "publisher": "gematik GmbH",
+    "date": "2026-06-19",
+    "name": "onset",
+    "code": "onset",
+    "base": [
+      "AllergyIntolerance"
+    ],
+    "type": "date",
+    "expression": "AllergyIntolerance.onset.ofType(dateTime)",
+    "comparator": [
+      "eq",
+      "ne",
+      "gt",
+      "ge",
+      "lt",
+      "le",
+      "sa",
+      "eb",
+      "ap"
+    ]
+  }
+  

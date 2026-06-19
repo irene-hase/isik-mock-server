@@ -2,7 +2,17 @@
 
 # Release Notes ISiK Mock Server
 
-## Release 5.0.6 (2026-05)
+## Release 5.0.8 (2026-06)
+
+### changed
+
+- Upgraded dependencies
+
+### fixed
+
+- Fixed the missing Search Parameter `onset` for the Profile `ISiKAllergieUnvertraeglichkeit`
+
+## Release 5.0.7 (2026-05)
 
 ### changed
 
