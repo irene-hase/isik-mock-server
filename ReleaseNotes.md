@@ -2,6 +2,12 @@
 
 # Release Notes ISiK Mock Server
 
+## Release 5.0.9 (2026-06)
+
+### changed
+
+- Upgraded dependencies
+
 ## Release 5.0.8 (2026-06)
 
 ### changed
